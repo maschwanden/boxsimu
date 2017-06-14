@@ -1,0 +1,114 @@
+\documentclass[12pt,twoside]{article}
+\renewcommand{\baselinestretch}{1.5}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+\usepackage{gensymb}
+\usepackage{float}
+\graphicspath{{images/}}
+\usepackage{lipsum}
+\usepackage[version=3]{mhchem}
+\usepackage{cleveref}
+\Crefname{figure}{Fig.}{Fig.}
+\usepackage{chngcntr}
+\usepackage{comment}
+\usepackage[a4paper, width=150mm,top=25mm,bottom=25mm,bindingoffset=6mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage[font=footnotesize,labelfont=bf,labelsep=space]{caption}
+\setcounter{secnumdepth}{5}
+\pagestyle{fancy}
+\usepackage{subcaption}
+\fancyhead{}
+\fancyhead[RO,LE]{Evaporation}
+\fancyfoot{}
+\fancyfoot[LE,RO]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\usepackage[style=authoryear,maxbibnames=999,maxcitenames=1,uniquelist=false,
+    backend=bibtex, natbib]{biblatex}
+
+\addbibresource{biblio.bib}
+
+
+\begin{document}
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
+
+\center % Center everything on the page
+ 
+%----------------------------------------------------------------------------------------
+%	HEADING SECTIONS
+%----------------------------------------------------------------------------------------
+
+\textsc{\Large Boxmodelling}\\[0.5cm] % Major heading such as course name
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\HRule \\[0.4cm]
+{ \huge \bfseries ODE's}\\[-0.2cm] % Title of your document
+\HRule \\[0.9cm]
+ 
+ %----------------------------------------------------------------------------------------
+%	SUBTITLE SECTION
+%----------------------------------------------------------------------------------------
+
+ % Title of your document
+
+%----------------------------------------------------------------------------------------
+%	AUTHOR SECTION
+%----------------------------------------------------------------------------------------
+
+%----------------------------------------------------------------------------------------
+%	DATE SECTION
+%----------------------------------------------------------------------------------------
+
+{\large \today}\\[1.5cm] % Date, change the \today to a set date if you want to be precise
+
+%----------------------------------------------------------------------------------------
+%	LOGO SECTION
+%----------------------------------------------------------------------------------------
+
+%\includegraphics{Logo}\\[1cm] % Include a department/university logo - this will require the graphicx package
+ 
+%----------------------------------------------------------------------------------------
+
+\end{titlepage}
+%\maketitle
+
+\pagestyle{plain}
+\setcounter{figure}{0} \renewcommand{\thefigure}{\arabic{figure}} 
+\pagestyle{fancy}
+
+\section{ODE}
+The herein derived ODE's for box models are based on the phosphorus ($P$) concentration in the considered system.
+
+In general it holds that the phosphorus concentration in a certain box is a function of time and certain 'environmental conditions'. This could be the temperature, the pressure or whatsoever:
+\begin{equation}
+\frac{dP}{dt} = f(t, condition).
+\end{equation}
+
+\section{Example Model 1}
+For a deep lake one could try to model the lake and it's phosphorus concentration as a two-box-model. The surface of the lake to a depth of the thermocline would then be a part of the \textit{Surface Layer} box (herein referred to as \textit{SL}) whereas the rest of the lake would be part of the \textit{Deep Lake} box (herein referred to as \textit{DL}).
+
+\subsection{Transport}
+A riverine inflow would bring new water into the SL box. At the end of the lake a outflow would transport lake water from the SL box downstream and finally into the worlds oceans. Between the two boxes there is also a mixing process, mainly based on turbulent mixing. This turbulent mixing is a function of time and is stronger in winter than in summer when the lake is more stratified. Additionally there is an exchange of water from the DL box with the groundwater.
+
+\subsection{Processes}
+
+
+
+
+
+%\appendix
+%\section{Appendix}
+%\input{chapters/Appendix.tex}
+
+\pagestyle{plain}
+
+\printbibliography
+
+
+\end{document}
