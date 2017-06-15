@@ -75,6 +75,9 @@ class BoxModelSystem:
                 box.variables[var_name].ID = var_id
                 var_id += 1    
 
+        for var_name, var in system_variables.items():
+            self.variables[var_name] = var
+
         system_variable_names = [var_name for var_name, var in 
                                  system_variables.items()]
         
@@ -140,13 +143,144 @@ class BoxModelSystem:
             q[src_box.ID] += mass_flow_rate.magnitude
         return q
     
-    def get_box_fluid_mass_vector(self, time):
+    def get_box_fluid_mass_vector(self):
         m = np.zeros(self.N_boxes)
         for box_name, box in self.boxes.items():
             m[box.ID] = box.fluid.mass.magnitude
         return m, box.fluid.mass.units
-        
-           
+
+    def get_box_variable_mass_vector(self, variable):
+        m = np.zeros(self.N_variables)
+        for box_name, box in self.boxes.items():
+            var = box.variables[variable.name]
+            m[box.ID] = var.mass.magnitude
+        return m, var.mass.units
+
+    def get_box_variable_concentration_vector(self, variable):
+        c = np.zeros(self.N_variables)
+        for box_name, box in self.boxes.items():
+            var = box.variables[variable.name]
+            conc = (var.mass / box.fluid.mass).to_base_units()
+            c[box.ID] = conc.magnitude
+        return c, conc.units
+
+    def _get_box_wise_sink(self, time, rates):
+        s = np.zeros(self.N_variables)
+        for box_name, box in self.boxes.items():
+            s[box.ID] = sum([rate.magnitude for rate in rates if rate.magnitude < 0])
+        units = 1
+        if len(processes_rates) > 0:
+            units = process_rates[0].units
+        return s, units
+    
+    def _get_box_wise_source(self, time, rates):
+        s = np.zeros(self.N_variables)
+        for box_name, box in self.boxes.items():
+            s[box.ID] = sum([rate.magnitude for rate in rates if rate.magnitude >= 0])
+        units = 1
+        if len(processes_rates) > 0:
+            units = process_rates[0].units
+        return s, units
+
+    def get_process_sink_vector_of_variable(self, time, variable):
+        print('get_process_sink_vector_of_variable')
+        process_rates =  [p(time, box.context) for p in self.processes if p.variable==variable]
+        return self._get_box_wise_sink(time, process_rates)
+
+
+
+
+#        for box_name, box in self.boxes.items():
+#            print("  " + box_name)
+#            print('    >box.processes: {}'.format(box.processes))
+#            
+#            processes_rates = [p(time, box.context) for p in box.processes if p.variable==variable]
+#            print('    >processes_rates(var={}): {}'.format(variable.name, var_processses))
+#            
+#            p_s[box.ID] = sum([rate.magnitude for rate in var_processes if rate.magnitude < 0])
+#        units = 1
+#        if len(processes_rates) > 0:
+#            units = process_rates[0].units
+#        print('  ->p_s: {}'.format(p_s))
+#        return p_s, units
+
+    def get_process_source_vector_of_variable(self, time, variable):
+        print('get_reaction_sink_vector_of_variable')
+        process_rates =  [p(time, box.context) for p in self.processes if p.variable==variable]
+        return self._get_box_wise_source(time, process_rates)
+
+#        p_q = np.zeros(self.N_variables)
+#        for box_name, box in self.boxes.items():
+#            print("  " + box_name)
+#            print('    >box.processes: {}'.format(box.processes))
+#            
+#            processes_rates = [p(time, box.context) for p in box.processes if p.variable==variable]
+#            print('    >processes_rates(var={}): {}'.format(variable.name, var_processses))
+#            
+#            p_q[box.ID] = sum([rate.magnitude for rate in var_processes if rate.magnitude >= 0])
+#        units = 1
+#        if len(processes_rates) > 0:
+#            units = process_rates[0].units
+#        print('  ->p_q: {}'.format(p_q))
+#        return p_s, units
+
+
+    def get_reaction_sink_vector_of_variable(self, time, variable):
+        print('get_reaction_sink_vector_of_variable')
+        reaction_rates =  [r(time, box.context)*r.get_coeff_of(variable) 
+                           for r in self.reactions if variable in r.variables]
+        return self._get_box_wise_sink(time, reaction_rates)
+
+#        r_s = np.zeros(self.N_variables)
+#        for box_name, box in self.boxes.items():
+#            print("  " + box_name)
+#            print('    >box.reactions: {}'.format(box.reactions))
+#            
+#            reaction_rates = [r(time, box.context)*r.get_coeff_of(variable) 
+#                              for r in box.reactions if variable in r.variables]
+#            print('    >reaction_rates(var={}): {}'.format(variable.name, reaction_rates))
+#            
+#            r_s[box.ID] = sum([rate.magnitude for rate in reaction_rates if rate.magnitude < 0])
+#        print('  ->r_s: {}'.format(r_s))
+#        units = 1
+#        if len(reaction_rates) > 0:
+#            units = processes_rates[0].units
+#        return r_s, units
+
+    def get_reaction_source_vector_of_variable(self, time, variable):
+        print('get_reaction_source_vector_of_variable')
+        reaction_rates =  [r(time, box.context)*r.get_coeff_of(variable) 
+                           for r in self.reactions if variable in r.variables]
+        return self._get_box_wise_source(time, reaction_rates)
+
+
+
+#        r_q = np.zeros(self.N_variables)
+#        for box_name, box in self.boxes.items():
+#            print("  " + box_name)
+#            print('    >box.reactions: {}'.format(box.reactions))
+#            
+#            reaction_rates = [r(time, box.context)*r.get_coeff_of(variable) 
+#                              for r in box.reactions if variable in r.variables]
+#            print('    >reaction_rates(var={}): {}'.format(variable.name, reaction_rates))
+#            
+#            r_q[box.ID] = sum([rate.magnitude for rate in reaction_rates if rate.magnitude >= 0])
+#        print('  ->r_q: {}'.format(r_q))
+#        units = 1
+#        if len(reaction_rates) > 0:
+#            units = processes_rates[0].units
+#        return r_q, units 
+
+    def get_flux_sink_vector_of_variable(self, time, variable):
+        print('get_flux_sink_vector_of_variable')
+        flux_rates =  [f(time, box.context) for f in self.fluxes if f.variables==variables]
+        return self._get_box_wise_sink(time, flux_rates)
+
+    def get_flux_source_vector_of_variable(self, time, variable):
+        print('get_flux_source_vector_of_variable')
+        flux_rates =  [f(time, box.context) for f in self.fluxes if f.variables==variables]
+        return self._get_box_wise_source(time, flux_rates)
+
     def solve(self, total_integration_time, dt):
         print('Start solving the box model...')
         print('- integration time: {}'.format(total_integration_time))
@@ -175,18 +309,22 @@ class BoxModelSystem:
             # Calculate Mass fluxes
             ##################################################
              
-            m, m_units = self.get_box_fluid_mass_vector(time)
-            m_change, m_units = self.calculate_mass_flows(time, dt)
+            m_change, m_units, A = self.calculate_mass_flows(time, dt)
             
 
             ##################################################
             # Calculate Variable changes due to PROCESSES and 
             # FUXES and finally due to the FLOWS
             ##################################################
-            
-            var_changes, var_units = self.calculate_variable_changes(time)
-                        
-            
+            var_changes = np.zeros(self.N_variables)
+            var_units = [1] * self.N_variables
+            for var_name, var in self.variables.items():
+                print('SOLVE for variable {}'.format(var_name))
+                change, units = self.calculate_changes_of_variable(time, var, A)
+                var_changes[var.ID] = change
+                var_units[var.ID] = units
+
+
             ##################################################
             # Apply changes to Boxes 
             ##################################################
@@ -196,7 +334,7 @@ class BoxModelSystem:
                 box.fluid.mass += m_change[box.ID] * m_units
                 
                 # Save volumes to Solution instance
-                sol.box_sol[box_name]['mass'].append(m[box.ID])
+                sol.box_sol[box_name]['mass'].append(box.fluid.mass)
             
             time += dt
             #a = input('Wait for it...')
@@ -229,17 +367,14 @@ class BoxModelSystem:
             #print('Time: {}'.format(time.to(dt.units).round()))
             sol.time.append(time)
             
-            m, m_units = self.get_box_fluid_mass_vector(time)
-            m_change, m_units = self.calculate_mass_flows(time, dt)
-                             
-            m = (m + m_change) * m_units
+            m_change, m_units, A = self.calculate_mass_flows(time, dt)
             
             for box_name, box in self.boxes.items():
                 # Write changes to box objects
-                box.fluid.mass = m[box.ID]
+                box.fluid.mass += m_change[box.ID] * m_units
                 
                 # Save volumes to Solution instance
-                sol.box_sol[box_name]['mass'].append(m[box.ID])
+                sol.box_sol[box_name]['mass'].append(box.fluid.mass)
             
             time += dt
             #a = input('Wait for it...')
@@ -247,8 +382,22 @@ class BoxModelSystem:
         return sol
     
     def calculate_mass_flows(self, time, dt):
+        """ Calculates the mass changes in every box.
+
+        Attributes:
+        - time (pint quantity): time at which the mass flows should be
+                                calculated
+        - dt (pint quantity): timestep used
+
+        Returns:
+        - mass_changes (numpy array): Array with the magnitude of mass 
+                                      changes for every box
+        - mass_units (numpy array): Units of mass_changes
+        - A (numpy 2D array): Flow matrix.
+        """
+
         f = np.ones(self.N_boxes) # scaling factor for sinks of each box
-        m, m_units = self.get_box_fluid_mass_vector(time)
+        m, m_units = self.get_box_fluid_mass_vector()
         m_ini = copy.deepcopy(m)
         # A, q, and s all have units of mass flux [kg/s]
         A = self.get_flow_matrix(time)
@@ -306,30 +455,78 @@ class BoxModelSystem:
 #        print('f : {}'.format(f))
 #        print('--------------------------------------')
 #        
-        return m_change, m_units
+        return m_change, m_units, A 
 
-    def calculate_variable_changes(self, time):
-        #print('calculate_variable_changes')
-        # Process vector: contains the net change of the mass of variables
-        p = np.zeros(self.N_variables)
+    def calculate_changes_of_variable(self, time, variable, A):
+        """ Calculates the changes of ONE variable in every box.
+
+        Attributes:
+        - time (pint quantity): time at which the mass flows should be
+                                calculated
+        - dt (pint quantity): timestep used
+        - A (numpy 2D array): Flow matrix.
+
+        Returns:
+        - var_changes (numpy array): Array with the magnitude of variable 
+                                      changes for every box
+        - var_units (numpy array): Units of var_changes
+        """
+        f = np.ones(self.N_variables) # scaling factor for sinks of each box
+        one_vec = np.ones(self.N_variables)
+        var, var_units = self.get_box_variable_mass_vector(variable)
+        var_conc, var_conc_units = self.get_box_variable_concentration_vector(variable)
+        var_conc_matrix = np.array([var_conc, ] * self.N_variables).T
+        var_ini = copy.deepcopy(var)
+
+        print('var: {}'.format(var))
+        print('var_units: {}'.format(var_units))
+        print('var_conc: {}'.format(var_conc))
+        print('var_conc_units: {}'.format(var_conc_units))
+        print('var_conc_matrix: {}'.format(var_conc_matrix))
+
+        a = input('Wait for it...')
         
-        var_changes = np.zeros(self.N_variables)
-        var_units = []
+        # all of these vectors have units of kg/s
+        p_s = self.get_process_sink_vector_of_variable(time, variable)
+        p_q = self.get_process_source_vector_of_variable(time, variable)
+        r_s = self.get_reaction_sink_vector_of_variable(time, variable)
+        r_q = self.get_reaction_source_vector_of_variable(time, variable)
+        f_s = self.get_flux_sink_vector_of_variable(time, variable)
+        f_q = self.get_flux_source_vector_of_variable(time, variable)
+        
+        dimless_dt = ((p_s[0].units/var_units)*dt).to_base_units().magnitude
+        
+        var_change = (np.dot(one_vec, p_q) - np.dot(one_vec, p_s) + 
+                      np.dot(one_vec, r_q) - np.dot(one_vec, r_s) +
+                      np.dot(one_vec, f_q) - np.dot(one_vec, f_s) +
+                      np.dot(A.T, var_conc) - np.dot(A * var_conc_matrix, one_vec)
+        )
 
-        for box_name, box in self.boxes.items():
-            #print(box_name)
-            var_process_change_rate = 0
-
-            for var_name, var in box.variables.items():
-                #print(var_name)
-                var_reaction_processes = [p for r in box.reactions for p in r.get_all_processes_of_variable(var)]
-                var_processes = Process.get_all_of_variable(var, box.processes) + var_reaction_processes
-                for process in var_processes:
-                    var_process_change_rate += process(time, process.box)
-                    #print('process of variable {}: {} with a rate of {}'.format(var_name, process.name, process(time, process.box))) 
-                
-                
-    
+        var = var_ini + var_change
+        
+        while np.any(var<0):
+            
+            f[np.argmin(m)] = min(
+                    float(net_source)/float(net_sink),
+                    f[np.argmin(var)] * 0.95
+            )
+#        for box_name, box in self.boxes.items():
+#            print('box_name: {}'.format(box_name))
+#             
+#            for var_name, var in box.variables.items():
+#                print('var_name: {}'.format(var_name))
+#                #print([r.get_rate_of(var) for r in Reaction.get_all_of_variable(var, box.reactions)])
+#                var_reaction_rates = [r.get_rate_of(var) for r in Reaction.get_all_of_variable(var, box.reactions)]
+#                var_reaction_change_rate = sum([rate(time, box.context) for rate in var_reaction_rates])
+#                var_processes = Process.get_all_of_variable(var, box.processes)
+#                var_process_change_rate = 0
+#                for process in var_processes:
+#                    var_process_change_rate += process(time, process.box)
+#                    #print('process of variable {}: {} with a rate of {}'.format(var_name, process.name, process(time, process.box))) 
+#                print('var_reaction_change_rate: {}'.format(var_reaction_change_rate))
+#            a = input('Wait for it...')
+#                
+#    
         return p, var_units 
             
             

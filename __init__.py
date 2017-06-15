@@ -23,7 +23,7 @@ __all__ = ['box', 'entities', 'condition', 'process', 'system', 'tests', 'transp
 from box import Box
 from condition import Condition
 from entities import Fluid, Variable
-from process import Process
+from process import Process, Reaction
 from system import BoxModelSystem
 from transport import BaseTransport, Flow, Flux
 

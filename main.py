@@ -16,11 +16,14 @@ BOXSIMU_PATH = '/home/aschi/Documents/MyPrivateRepo/notebooks/'
 if not BOXSIMU_PATH in sys.path:
     sys.path.append(BOXSIMU_PATH)
 
-from BoxSimu import (Fluid, Variable, Box, Flow, Condition, 
+from boxsimu import (Fluid, Variable, Box, Flow, Condition, 
                      BoxModelSystem, Process, Reaction)
-from BoxSimu import utils
+from boxsimu import utils
 
 
+#############################
+# FLUIDS
+#############################
 # water density parameters
 A = 0.14395
 B = 0.0112
@@ -32,27 +35,50 @@ water = Fluid('water', rho_expr=rho_expr_water, mass=8e5*ur.kg)
 lakewater = copy.deepcopy(water)
 lakewater.mass = 2e6*ur.kg
 
+#############################
+# CONDITIONS
+#############################
 condition_lake = Condition(T=290*ur.kelvin, pH=5)
 condition_upper_ocean = Condition(T=280*ur.kelvin)
 condition_deep_ocean = Condition(T=275*ur.kelvin)
 
+#############################
+# VARIABLES
+#############################
 phosphate = Variable('PO4', 1*ur.kg)
 nitrate = Variable('NO3', 2*ur.kg)
 organic_compound1 = Variable('OC1', 3*ur.kg)
+phyto = Variable('phyto', 10*ur.kg)
 
+#############################
+# PROCESSES
+#############################
 process_photolytic_deg_rate = lambda t, c: -max(0,((- 10*ur.kelvin*np.cos(2*np.pi*t / (24*ur.hour))) / (10*ur.kelvin))) * 10*ur.gram/ur.hour
-process_photolytic_deg = Process('Photolytic Degradation', organic_compound1, process_photolytic_deg_rate) 
+process_photolytic_deg = Process(
+        'Photolytic Degradation', 
+        organic_compound1, 
+        process_photolytic_deg_rate
+) 
 
-reaction_photosynthesis = Reaction
+#############################
+# REACTIONS
+#############################
+reaction_photosynthesis = Reaction(
+    name = 'Photosynthesis',
+    variables = [nitrate, phosphate, phyto],
+    variable_coeffs=[-7.225, -1, + 114.5],  # Redfield ratio in weight instead of mol
+    reactions_rate=lambda t, c: (max(0,((- 10*ur.kelvin*np.cos(2*np.pi*t / (24*ur.hour))) / (10*ur.kelvin))) * 10)**1.4 *ur.gram/ur.hour
+)
 
-
-#r1 = Reaction('Phytoplankton growth (Primary Production)', 
-
+#############################
+# BOXES
+#############################
 lake = Box(
     name='lake',
     name_long='Medium Size Lake',
     fluid=lakewater,
     processes=[process_photolytic_deg,],
+    reactions=[reaction_photosynthesis, ],
     variables=[phosphate, organic_compound1],
     condition=condition_lake,
 )
@@ -61,6 +87,7 @@ upper_ocean = Box(
     name_long='Upper Ocean Box',
     fluid=water, 
     processes=[process_photolytic_deg,],
+    reactions=[reaction_photosynthesis, ],
     variables=[phosphate, ],
     condition=condition_upper_ocean,
 )
@@ -74,7 +101,9 @@ deep_ocean = Box(
 )
 
 
-
+#############################
+# FLOWS
+#############################
 f1 = Flow(
     name='River flow from Lake to Ocean', 
     source_box=lake, 
@@ -106,8 +135,16 @@ f5 = Flow(
     rate=lambda t, c: min(min(np.exp(t/(800*ur.minute)),5)*0.1e5*ur.kg/ur.second, 0.21e5*ur.kg/ur.second), 
 )
 
+#############################
+# FLUXES
+#############################
 
 
+
+
+#############################
+# SYSTEM
+#############################
 sys = BoxModelSystem('Test System', 
                       [lake, upper_ocean, deep_ocean], 
                       Condition(T=301.11, pH=8.3),
@@ -118,7 +155,7 @@ sys = BoxModelSystem('Test System',
 #sol.plot_box_masses()
 
 
-sol = sys.solve(1440*ur.min, 1*ur.min)
+sol = sys.solve(1440*ur.min, 30*ur.min)
 
 #sol.plot_quantities(sol.boxes.upper_ocean.volume, 'Volume of upper ocean')
 #sol.plot_quantities(sol.boxes.deep_ocean.volume, 'Volume of deep ocean')

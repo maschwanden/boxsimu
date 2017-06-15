@@ -38,13 +38,13 @@ class Box:
     - system: System to which this Box belongs.
     """
     
-    def __init__(self, name, name_long, fluid, condition, variables=[], 
+    def __init__(self, name, name_long, fluid, condition=None, variables=[], 
                  processes=[], reactions=[] ):
         self.ID = None
         self.name = name
         self.name_long = name_long
         self.fluid = copy.copy(fluid)
-        self.condition = condition
+        self.condition = condition if condition else Condition()
         
         self.variables = AttrDict({variable.name: variable for variable in variables})  # copy.deepcopy(variables)
         self.processes = copy.deepcopy(processes)
