@@ -18,6 +18,9 @@ from process import Process, Reaction
 from condition import Condition
 from solution import Solution
 
+from utils import (dimensionality_check, dimensionality_check_err, 
+        dimensionality_check_mass_flux_err, dimensionality_check_mass_err)
+
 from pint import UnitRegistry
 ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
@@ -130,6 +133,12 @@ class BoxModelSystem:
         return len(self.variables)
     
     def get_fluid_mass_flow_matrix(self, time, flows):
+        """ Returns fluid mass exchange rates due to flows between boxes of the system. 
+        
+        Returns a 2D numpy array (Matrix-like) with the sum of fluid mass exchange rates between boxes of the system.
+        Row i of the 2D numpy array represents the flows that go away from box i (sinks).
+        Column j of the 2D numpy array represents the flows that go towards box j (sources).
+        """
         N_boxes = self.N_boxes
         A = np.zeros([N_boxes, N_boxes])
         
@@ -138,13 +147,18 @@ class BoxModelSystem:
             trg_box = flow.target_box
             if src_box == None or trg_box == None:
                 continue
-            mass_flow_rate = flow.mass_flow_rate(time, src_box.context)
+            mass_flow_rate = flow.mass_flow_rate(time, src_box.context).to_base_units()
+            dimensionality_check_mass_flux_err(mass_flow_rate)
             A[src_box.ID, trg_box.ID] += mass_flow_rate.magnitude
         return A
             
-    
     def get_fluid_mass_flow_source_vector(self, time, flows):
-        s = np.zeros(self.N_boxes)
+        """ Returns fluid mass sources due to flows from the outside of the system. 
+        
+        Returns a 1D numpy array with the sum of sources of fluid mass due to 
+        flows from the outside of the system within a box of the system for every box.
+        """
+        q = np.zeros(self.N_boxes)
         
         sources = Flow.get_all_from(None, flows)
         for flow in sources:
@@ -152,12 +166,18 @@ class BoxModelSystem:
             trg_box = flow.target_box
             if src_box == None and trg_box == None:
                 continue
-            mass_flow_rate = flow.mass_flow_rate(time, trg_box.context)
-            s[trg_box.ID] += mass_flow_rate.magnitude
-        return s
+            mass_flow_rate = flow.mass_flow_rate(time, trg_box.context).to_base_units()
+            dimensionality_check_mass_flux_err(mass_flow_rate)
+            q[trg_box.ID] += mass_flow_rate.magnitude
+        return q
     
     def get_fluid_mass_flow_sink_vector(self, time, flows):
-        q = np.zeros(self.N_boxes)
+        """ Returns fluid mass sinks due to flows out of the system. 
+        
+        Returns a 1D numpy array with the sum of sinks of fluid mass due to 
+        flows out of the system for every box.
+        """
+        s = np.zeros(self.N_boxes)
         
         sinks = Flow.get_all_to(None, flows)
         for flow in sinks:
@@ -165,22 +185,26 @@ class BoxModelSystem:
             trg_box = flow.target_box
             if src_box == None and trg_box == None:
                 continue
-            mass_flow_rate = flow.mass_flow_rate(time, src_box.context)
-            q[src_box.ID] += mass_flow_rate.magnitude
-        return q
+            mass_flow_rate = flow.mass_flow_rate(time, src_box.context).to_base_units()
+            dimensionality_check_mass_flux_err(mass_flow_rate)
+            s[src_box.ID] += mass_flow_rate.magnitude
+        return s
     
     def get_fluid_mass_vector(self):
         m = np.zeros(self.N_boxes)
         for box_name, box in self.boxes.items():
-            m[box.ID] = box.fluid.mass.magnitude
-        return m, box.fluid.mass.units
+            box_fluid_mass = box.fluid.mass.to_base_units()
+            dimensionality_check_mass_flux_err(box_fluid_mass) 
+            m[box.ID] = box_fluid_mass.magnitude
+        return m
 
     def get_variable_mass_vector(self, variable):
         m = np.zeros(self.N_boxes)
         for box_name, box in self.boxes.items():
-            var = box.variables[variable.name]
-            m[box.ID] = var.mass.to_base_units().magnitude
-        return m, var.mass.units
+            var_mass = box.variables[variable.name].mass.to_base_units()
+            dimensionality_check_mass_flux_err(var_mass) 
+            m[box.ID] = var_mass
+        return m
 
     def get_variable_concentration_vector(self, variable):
         # TODO
@@ -203,32 +227,20 @@ class BoxModelSystem:
                 c_units = conc.units
         return c, c_units
 
-    def _get_variable_x_sink_vector(self, time, rates):
-        s = np.zeros(self.N_boxes)
-        for box_name, box in self.boxes.items():
-            s[box.ID] = sum([rate.to_base_units().magnitude for rate in rates if rate.magnitude < 0])
-        units = 1
-        if len(rates) > 0:
-            units = rates[0].units
-        return s, units
-    
-    def _get_variable_x_source_vector(self, time, rates):
-        q = np.zeros(self.N_boxes)
-        for box_name, box in self.boxes.items():
-            q[box.ID] = sum([rate.to_base_units().magnitude for rate in rates if rate.magnitude >= 0])
-        units = 1
-        if len(rates) > 0:
-            units = rates[0].to_base_units().units
-        return q, units
-
-    def get_variable_flow_sink_vector(self, time, variable, mass_flow_sink_vector):
+    def get_variable_flow_sink_vector(self, time, variable, f_flow):
         # TODO: critically check if this function is correct
         var_conc, var_conc_units = self.get_box_variable_concentration_vector(variable)
-        return mass_flow_sink_vector * var_conc
+        flow_s = mass_flow_sink_vector * var_conc
+        units = 1
+        if len(flow_s) > 0:
+            units = flow_s[0].units
 
-    def get_variable_flow_source_vector(self, time, variable, mass_flow_source_vector):
+        return flow_s, units 
+
+    def get_variable_flow_source_vector(self, time, variable, f_flow):
         # TODO: critically check if this function is correct
         q = np.zeros(self.N_boxes)
+        mass_flow_source_vector = self.get_fluid_mass_flow_source_vector(
         tt_source_flows = [flow for flow in Flow.get_all_from(None, self.flows) 
                            if (flow.tracer_transport==True and variable in flow.variables)]
         for box_name, box in self.boxes.items():
