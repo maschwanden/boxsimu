@@ -1,0 +1,13 @@
+TODO:
+
+- make nice plot interface
+- incorporate processes and fluxes
+- incorporate reactions
+- make reactions stop if one of the educts is not available anymore
+- make gui
+- stability criterion for timesteps?!
+- Make a way to specify input concentrations of flows from outside the system
+- Make a way to specify wheter a flow that goes outside the system transports variables with it or not: E.g. evaporation of surface ocean water will not transport significant amounts of nutrients or salinity into the atmosphere were on the other hand a flow from a multi-lake model into the ocean will for sure transport significant amounts of nutrients.
+- Think about a way to calculate the timestep more efficient:
+  --> 
+

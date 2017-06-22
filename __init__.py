@@ -24,6 +24,8 @@ from box import Box
 from condition import Condition
 from entities import Fluid, Variable
 from process import Process, Reaction
+from solution import Solution
 from system import BoxModelSystem
 from transport import BaseTransport, Flow, Flux
+
 

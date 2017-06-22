@@ -14,6 +14,7 @@ from utils import (dimensionality_check, dimensionality_check_err,
                    dimensionality_check_volume_flux, 
                    dimensionality_check_mass_flux,
                    dimensionality_check_mass_flux_err,
+                   dimensionality_check_mass_dimless,
                    magnitude_in_current_units, magnitude_in_base_units)
 from action import BaseAction
 
@@ -64,12 +65,19 @@ class BaseTransport(BaseAction):
     
 
 class Flow(BaseTransport):
-    """ Represents the flow of the medium from one box into another.
-    
-    Attribute:
-    - flow_rate: Mass or volume of fluid that is transported from the source 
-                 box into the target box per time.
-    """
+    """ Represents the flow of the medium from one box into another. """
+
+    def __init__(self, name, source_box, target_box, rate, tracer_transport=True):
+        super(Flow, self).__init__(name, source_box, target_box, rate)
+
+        # specify whether tracers are transported with this flow
+        # if set to true a flow from one box to another will also transport variables
+        # (tracers) from the source box to the target box. If set to False only fluid
+        # mass will be transported and no variable mass is removed from the source box.
+        self.tracer_transport = tracer_transport 
+
+        self.variables = []
+        self.concentrations = {}
     
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
@@ -88,6 +96,17 @@ class Flow(BaseTransport):
         flow_rate = flow.to_base_units()
         dimensionality_check_mass_flux_err(flow_rate) 
         return flow_rate
+
+    def add_transported_variable(self, variable, concentration):
+        """ Adds a variable to the flow: This variable is then transported into the
+        target box. Only for Flows that have no source box!
+        """
+        if self.source_box:
+            raise ValueError('Fixed variable concentrations can only be set for Flows with no '\
+                    'source_box set (source_box=None)!')
+        dimensionality_check_mass_dimless(concentration)
+        self.variables.append(variable)
+        self.concentrations[variable.name] = concentration
              
         
 class Flux(BaseTransport):
@@ -109,8 +128,8 @@ class Flux(BaseTransport):
         self.name = name
         self.source_box = source_box
         self.target_box = target_box
-        self.rate = rate
         self.variable = variable
+        self.rate = rate
         
         self.units = None
         

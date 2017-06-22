@@ -17,7 +17,7 @@ if not BOXSIMU_PATH in sys.path:
     sys.path.append(BOXSIMU_PATH)
 
 from boxsimu import (Fluid, Variable, Box, Flow, Condition, 
-                     BoxModelSystem, Process, Reaction)
+                     BoxModelSystem, Process, Reaction, Flux)
 from boxsimu import utils
 
 
@@ -33,7 +33,7 @@ rho_expr_water = lambda time, c: A / (B**(1+(1-(c.T/C))**D))*ur.kg/ur.meter**3
 
 water = Fluid('water', rho_expr=rho_expr_water, mass=8e5*ur.kg)
 lakewater = copy.deepcopy(water)
-lakewater.mass = 2e6*ur.kg
+lakewater.mass = 8e4*ur.kg
 
 #############################
 # CONDITIONS
@@ -67,7 +67,7 @@ reaction_photosynthesis = Reaction(
     name = 'Photosynthesis',
     variables = [nitrate, phosphate, phyto],
     variable_coeffs=[-7.225, -1, + 114.5],  # Redfield ratio in weight instead of mol
-    reactions_rate=lambda t, c: (max(0,((- 10*ur.kelvin*np.cos(2*np.pi*t / (24*ur.hour))) / (10*ur.kelvin))) * 10)**1.4 *ur.gram/ur.hour
+    rate=lambda t, c: (max(0,((- 10*ur.kelvin*np.cos(2*np.pi*t / (24*ur.hour))) / (10*ur.kelvin))) * 10)**1.4 *ur.gram/ur.hour
 )
 
 #############################
@@ -77,17 +77,17 @@ lake = Box(
     name='lake',
     name_long='Medium Size Lake',
     fluid=lakewater,
-    processes=[process_photolytic_deg,],
-    reactions=[reaction_photosynthesis, ],
-    variables=[phosphate, organic_compound1],
+    #processes=[process_photolytic_deg,],
+    #reactions=[reaction_photosynthesis, ],
+    variables=[phosphate,], # organic_compound1],
     condition=condition_lake,
 )
 upper_ocean = Box(
     name='upper_ocean',
     name_long='Upper Ocean Box',
     fluid=water, 
-    processes=[process_photolytic_deg,],
-    reactions=[reaction_photosynthesis, ],
+    #processes=[process_photolytic_deg,],
+    reactions=[],
     variables=[phosphate, ],
     condition=condition_upper_ocean,
 )
@@ -139,6 +139,7 @@ f5 = Flow(
 # FLUXES
 #############################
 
+flux1 = Flux('Biological pump', upper_ocean, deep_ocean, phyto, lambda t, c: c.box1.variables.phyto.mass * 0.1 / ur.day)
 
 
 
@@ -149,13 +150,15 @@ sys = BoxModelSystem('Test System',
                       [lake, upper_ocean, deep_ocean], 
                       Condition(T=301.11, pH=8.3),
                       flows=[f1,f2,f3,f4,f5],
+                      #fluxes=[flux1, ],
                       )
 
 #sol = sys.solve_flows(100*ur.second, 1*ur.second)
-#sol.plot_box_masses()
 
 
-sol = sys.solve(1440*ur.min, 30*ur.min)
+sol = sys.solve(1.0*ur.min, 5*ur.second)
+sol.plot_variables_masses(['NO3', 'PO4'])
+sol.plot_box_masses()
 
 #sol.plot_quantities(sol.boxes.upper_ocean.volume, 'Volume of upper ocean')
 #sol.plot_quantities(sol.boxes.deep_ocean.volume, 'Volume of deep ocean')

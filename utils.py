@@ -102,6 +102,13 @@ def dimensionality_check_mass_flux_err(quantitiy):
     dimensionality_check_err(quantitiy, ur.kg/ur.second)
 
 
+def dimensionality_check_mass_dimless(quantitiy):
+    """ 
+    Raises Error if a given value has not dimensions of mass flux in pint units.
+    """
+    dimensionality_check_err(quantitiy, ur.dimensionless)
+
+
 def magnitude_in_current_units(quantity):
     """ Splits a pint.Quantity into its magnitude and the current unit. 
     Attribute:

@@ -60,12 +60,14 @@ class Reaction(BaseAction):
     - rate: Reaction rate must have units of [M/T]. The reaciton rates defines the mass that is transformed of a variable with a var_coeff of 1. This means if a variable has a var_coeff of 3, the rate of mass transformed of this variable is: reaction_rate * 3. 
     """
 
-    def __init__(self, name, variables, variable_coeffs, reactions_rate):
+    def __init__(self, name, variables, variable_coeffs, rate):
         self.name = name
         self.variables = variables
         self.variable_coeffs = variable_coeffs
         self.rate = rate
+
         self.box = None
+        self.units = None
     
     @classmethod
     def get_all_of_box(cls, box, reactions):

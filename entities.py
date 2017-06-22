@@ -23,14 +23,14 @@ class Fluid:
     - mass (pint quantity): Mass of the whole fluid.
     """
     
-    def __init__(self, name, rho_expr, mass):
+    def __init__(self, name, rho_expr):
         self.name = name
         if callable(rho_expr) or dimensionality_check_density(rho_expr):
             self.rho_expr = rho_expr
         else:
             raise ValueError('rho_expr must either be a callable function or '
                              'have the dimension of weight per volume')
-        self.mass = mass
+        self.mass = None
         self.box = None
             
     @property
@@ -46,12 +46,13 @@ class Fluid:
     def volume(self):
         return self.mass / self.rho
             
-    def info(self,):
-        print(self.name)
-        print('_____________________')
-        print('Volume: {}'.format(self.volume))
-        print('Mass: {}'.format(self.mass))
-        print('Density: {}'.format(self.rho))
+    def q(self, mass):
+        """ Returns a 'quantified' deepcopy of the fluid. """
+        dimensionality_check_mass_err(mass) 
+        self_copy = copy.deepcopy(self)
+        self_copy.mass = mass
+        self_copy.units = mass.units
+        return self_copy
 
 
 class Variable:
@@ -63,15 +64,14 @@ class Variable:
     
     ALLOWED_CONCENTRATION_TYPES = ['volumetric', 'areal']
     
-    def __init__(self, name, mass, concentration_type='volumetric'):
+    def __init__(self, name, concentration_type='volumetric'):
         self.ID = None
         self.name = name
 
-        dimensionality_check_mass_err(mass)    
-        self.mass = mass
+        self.mass = 0 
 
         self.concentration_type = concentration_type
-        self.units = mass.units
+        self.units = 1
         self.box = None
         
         
@@ -93,6 +93,14 @@ class Variable:
             if self.box.area and self.concentration_type=='areal':
                 return self.mass / self.box.surface
         return np.nan
+
+    def q(self, mass):
+        """ Returns a 'quantified' deepcopy of variables. """
+        dimensionality_check_mass_err(mass) 
+        self_copy = copy.deepcopy(self)
+        self_copy.mass = mass
+        self_copy.units = mass.units
+        return self_copy
 
 
 
