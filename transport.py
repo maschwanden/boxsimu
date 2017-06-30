@@ -10,17 +10,21 @@ from scipy import integrate
 from pint import UnitRegistry
 ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
-from utils import (dimensionality_check, dimensionality_check_err, 
-                   dimensionality_check_volume_flux, 
-                   dimensionality_check_mass_flux,
-                   dimensionality_check_mass_flux_err,
-                   dimensionality_check_mass_dimless,
-                   magnitude_in_current_units, magnitude_in_base_units)
+import utils
+import errors
+import box
 from action import BaseAction
 
 
 class BaseTransport(BaseAction):
-    """ Represents a basic transport of a substance or solvent."""
+    """ Represents a basic transport of a substance or solvent.
+    
+    Attributes:
+    - name (str): Name of the BaseTransport. Short descriptive text.
+    - source_box (Box): 
+    - target_box (Box): 
+    - rate: 
+    """
     
     def __init__(self, name, source_box, target_box, rate):
         self.name = name
@@ -29,14 +33,6 @@ class BaseTransport(BaseAction):
         self.rate = rate
         
         self.units = None
-    
-    def __call__(self, *args, **kwargs):
-        rate = self.rate
-        if callable(rate):
-            rate = rate(*args, **kwargs)
-        if not self.units:
-            self.units = rate.units
-        return rate
     
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
@@ -65,11 +61,27 @@ class BaseTransport(BaseAction):
     
 
 class Flow(BaseTransport):
-    """ Represents the flow of the medium from one box into another. """
+    """ Represents the flow of the medium from one box into another. 
+    
+    For the evaluation of the rate at runtime the following rules apply:
+    - if the flow has a source box the context of this source box is used as context
+    - if the flow has only a target box (therefore it is a flow from the outside of 
+    the system into the system) the global context of the system is used as context!
+
+    Attributes:
+    - 
+    """
 
     def __init__(self, name, source_box, target_box, rate, tracer_transport=True):
-        super(Flow, self).__init__(name, source_box, target_box, rate)
-
+        if source_box == target_box:
+            raise ValueError('target_box and source_box must not be equal!')
+        
+        if not (isinstance(source_box, box.Box) or isinstance(target_box, box.Box)):
+            raise ValueError('At least one of the two parameters source_box'\
+                    'and target_box must be an instance of the class Box!')
+        if isinstance(source_box, box.Box) and isinstance(target_box, box.Box):
+            if source_box.fluid != target_box.fluid:
+                raise ValueError('target_box.fluid and source_box.fluid must be equal!')
         # specify whether tracers are transported with this flow
         # if set to true a flow from one box to another will also transport variables
         # (tracers) from the source box to the target box. If set to False only fluid
@@ -79,34 +91,26 @@ class Flow(BaseTransport):
         self.variables = []
         self.concentrations = {}
     
+        super(Flow, self).__init__(name, source_box, target_box, rate)
+
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
     
-    def mass_flow_rate(self, time, context):
-        """ Calculates the total volume flow rate depnding on time, and context.
-        """
-        flow = self.__call__(time, context)
-        
-        if dimensionality_check_volume_flux(flow):
-            if self.source_box:
-                flow = flow*self.source_box.fluid.rho
-            else:
-                flow = flow*self.target_box.fluid.rho
-        
-        flow_rate = flow.to_base_units()
-        dimensionality_check_mass_flux_err(flow_rate) 
-        return flow_rate
-
     def add_transported_variable(self, variable, concentration):
         """ Adds a variable to the flow: This variable is then transported into the
         target box. Only for Flows that have no source box!
         """
+
         if self.source_box:
             raise ValueError('Fixed variable concentrations can only be set for Flows with no '\
                     'source_box set (source_box=None)!')
-        dimensionality_check_mass_dimless(concentration)
+        conc = concentration.to_base_units()
+        utils.dimensionality_check_mass_dimless(conc)
+
+        if not variable.quantified:
+            raise errors.VariableNotQuantifiedError('Variable was not quantified!')
         self.variables.append(variable)
-        self.concentrations[variable.name] = concentration
+        self.concentrations[variable.name] = conc
              
         
 class Flux(BaseTransport):
@@ -118,25 +122,28 @@ class Flux(BaseTransport):
     
     Attributes:
     - name: Name of the transport process. Should be a short describtive text.
-    - variable: Instance of Variable that represents the transported substance.
     - source_box: Instance of Box or None if the transport is coming from outside the system.
     - target_box: Instance of Box or None if the transport is going outside the system.
+    - variable: Instance of Variable that represents the transported substance.
     - rate: Rate of the flux of the variable.
     """
     
     def __init__(self, name, source_box, target_box, variable, rate):
         self.name = name
-        self.source_box = source_box
-        self.target_box = target_box
+        if source_box == target_box:
+            raise ValueError('target_box and source_box must not be equal!')
+        if not (isinstance(source_box, Box) and isinstance(target_box, Box)):
+            raise ValueError('The parameters source_box and target_box must be'\
+                             'instances of the class Box!')
+
+        if not variable.quantified:
+            raise errors.VariableNotQuantifiedError('Variable was not quantified!')
         self.variable = variable
-        self.rate = rate
         
-        self.units = None
-        
-    def mass_flux_rate(self, time, context):
-        """ Calculates the total flux rate depnding on time, and context.
-        """
-        flux = self.__call__(time, context)
-        flux_rate = flux.to_base_units()
-        dimensionality_check_mass_flux_err(flux_rate) 
-        return flux_rate
+        super(Flux, self).__init__(name, source_box, target_box, rate)
+
+
+
+
+
+

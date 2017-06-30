@@ -18,13 +18,14 @@ cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(insp
 if cmd_subfolder not in sys.path:
     sys.path.insert(0, cmd_subfolder)
 
-__all__ = ['box', 'entities', 'condition', 'process', 'system', 'tests', 'transport', 'utils']
+__all__ = ['action', 'box', 'condition', 'entities', 'process', 'solution', 'solver', 'system', 'tests', 'transport', 'utils']
 
 from box import Box
 from condition import Condition
 from entities import Fluid, Variable
 from process import Process, Reaction
 from solution import Solution
+from solver import Solver
 from system import BoxModelSystem
 from transport import BaseTransport, Flow, Flux
 

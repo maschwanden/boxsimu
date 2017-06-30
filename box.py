@@ -5,22 +5,23 @@ Created on Thu Jun 23 10:23:46 2016
 @author: aschi
 """
 import copy
+from keyword import iskeyword
 from attrdict import AttrDict
 
+import errors
 from transport import Flow
 from process import Process
 from condition import Condition
-
-from utils import dimensionality_check, dimensionality_check_err
 
 
 class Box:
     """ Represents a box in a single- or multibox model.
     
-    Boxes have a certain (initial) volume that can change if the outflow and 
-    inflow are not equal. Additionally every box has specific processes that 
+    The mass and volume of a box is defined by the fluid it contains. Fluids have
+    a certain (initial) mass that can change if the outflow and inflow of the box 
+    are not equal. Additionally every box has specific processes that 
     take place and potentially alter the concentrations of containting 
-    substances. Finally every box has specific (environmental) conditions like
+    variables. Finally every box has specific (environmental) conditions like
     temperature etc. that are specific for this box (in contrast to "global 
     conditions" that are default for every box that doesnt overwrites a global 
     condtion).
@@ -37,37 +38,46 @@ class Box:
     - substances: Substances that should be analysed.
     - system: System to which this Box belongs.
     """
-    
+
     def __init__(self, name, name_long, fluid, condition=None, variables=[], 
-                 processes=[], reactions=[] ):
+                 processes=[], reactions=[]):
         self.ID = None
+
+        if not name.isidentifier() or iskeyword(name):
+            raise ValueError('Name must be a valid python variable name!')
+
         self.name = name
         self.name_long = name_long
-        self.fluid = copy.copy(fluid)
-        self.condition = condition if condition else Condition()
-        
-        self.variables = AttrDict({variable.name: variable for variable in variables})  # copy.deepcopy(variables)
+
+        if not fluid.quantified:
+            raise errors.FluidNotQuantifiedError('Fluid was not quantified!')
+        self.fluid = copy.deepcopy(fluid)
+        self.condition = copy.deepcopy(condition) or Condition()
         self.processes = copy.deepcopy(processes)
         self.reactions = copy.deepcopy(reactions)
-        self.system = None
-        self.surface = 0
+        self.variables = AttrDict()
+
+        for variable in variables:
+            if not variable.quantified:
+                raise errors.VariableNotQuantifiedError('Variable was not quantified!')
+            self.variables[variable.name] = variable
         
-        # Set the box attribute of the fluid, substances, and process in order
-        # to give them access to the condition of the box
-        self.fluid.box = self
-        for var_name, var in self.variables.items():
-            var.box = self
-        for process in self.processes:
-            process.box = self
+        # Not needed now.
+        # self.surface = 0
         
         variable_names = [var_name for var_name, var in self.variables.items()]
         if len(variable_names) != len(set(variable_names)):
             raise ValueError('Variable names have to be unique!')
-      
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return False
+
     @property
-    def volume(self):
-        return self.fluid.volume
-    
+    def mass(self):
+        return self.fluid.mass + sum([var.mass for var in self.variables])
+     
     @property
     def cond(self):
         return self.condition
@@ -75,38 +85,10 @@ class Box:
     @property
     def var(self):
         return self.variables
-        
-    def info(self,):
-        print(self.name)
-        print('_____________________')
-        print('Box Volume: {}'.format(self.volume))
-        print()
-                 
-    def set_global_condition(self, global_condition):
-        self.condition.set_superior_condition(global_condition)
 
-    @property
-    def context(self):
-        """
-        Returns a context for evaluating user-defined functions.
-        
-        box_context returns a context containing the box condition and 
-        variables. In addition all boxes of the whole boxmodel-system are also 
-        added to the context in order to give the user-defined function access 
-        to condition and variables of other boxes.
-        
-        """
-        context = self.condition
-        for var_name, var in self.variables.items():
-            setattr(context, var_name, var)
-        for box_name, box in self.system.boxes.items():
-            setattr(context, 'box_'+box.name, box)
-        # Add current box to context as 'box1'
-        setattr(context, 'box1', self)
-        return context
-    
+    def get_volume(self, time=None, context=None):
+        return self.fluid.get_volume(time, context)
 
-    
-    
+        
             
             

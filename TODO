@@ -1,5 +1,6 @@
 TODO:
 
+- Rewrite all function of variables-sinks and sources to return a 2D numpy array with the structure of: Rows: Boxes and Columns: Variables
 - make nice plot interface
 - incorporate processes and fluxes
 - incorporate reactions
