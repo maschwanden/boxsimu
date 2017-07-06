@@ -27,7 +27,10 @@ def dimensionality_check(quantitiy, *units):
             if quantitiy.dimensionality == u.dimensionality:
                 return True
     except AttributeError:
-        pass
+        dimensions = [u.dimensionality for u in units]
+        if isinstance(quantity, float) or isinstance(quantity, int):
+            if ur.dimensionless.dimensionality in dimensions:
+                return True
     return False
 
 
@@ -102,7 +105,7 @@ def dimensionality_check_mass_flux_err(quantitiy):
     dimensionality_check_err(quantitiy, ur.kg/ur.second)
 
 
-def dimensionality_check_mass_dimless(quantitiy):
+def dimensionality_check_dimless(quantitiy):
     """ 
     Raises Error if a given value has not dimensions of mass flux in pint units.
     """

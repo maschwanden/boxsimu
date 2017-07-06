@@ -5,10 +5,13 @@ Created on Thu Jun 23 10:36:37 2016
 @author: aschi
 """
 
-from action import BaseAction
+import copy
+
+from . import action
+from . import errors
 
 
-class Process(BaseAction):
+class Process(action.BaseAction):
     """ Represents a process.
     
     An internal process can be a production or destruction of a variable.
@@ -23,9 +26,6 @@ class Process(BaseAction):
     
     def __init__(self, name, variable, rate):
         self.name = name
-        if not variable.quantified:
-            raise ValueError('Variables were not quantified until now!'\
-                    'Use the method q() on the instance to quantify the variable!')
         self.variable = variable
         self.rate = rate
         
@@ -40,7 +40,7 @@ class Process(BaseAction):
         return  [p for p in processes if p.box==box]
 
 
-class Reaction(BaseAction):
+class Reaction(action.BaseAction):
     """ Represents a reaction that transforms variable-masses.
 
     A reaction can for example be: 
@@ -51,10 +51,10 @@ class Reaction(BaseAction):
     Attributes:
     - name (str): Name of the Reaction. Short descriptive text.
     - box (Box): Box in which the reaction takes place.
-    - variable_reaction_coeff_dict (dict): 
+    - variable_reaction_coefficients (dict): 
         Dict with instances of Variable as keys and the corresponding
         reaction coefficients as values. 
-        E.g. : A + 3B -> 2C + 4D -> variable_reaction_coeff_dict={A: -1, B: -3, C: 2, D: 4}
+        E.g. : A + 3B -> 2C + 4D -> variable_reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
     - rate (pint Quantity or callable that returns pint Quantity): 
     Reaction rate must have units of [M/T]. The reaciton rates 
     defines the mass that is transformed of a variable with a var_coeff 
@@ -62,15 +62,13 @@ class Reaction(BaseAction):
     transformed of this variable is: reaction_rate * 3. 
     """
 
-    def __init__(self, name, variable_reaction_coeff_dict, rate):
+    def __init__(self, name, variable_reaction_coefficients, rate):
         self.name = name
         self.variables = []
         self.variable_coeffs = []
-        self.variable_reaction_coeff_dict = copy.deepcopy(variable_reaction_coeff_dict)
+        self.variable_reaction_coefficients = variable_reaction_coefficients
         
-        for variable, coeff in variable_reaction_coeff_dict.items():
-            if not variable.quantified:
-                raise errors.VariableNotQuantifiedError('Variable was not quantified!')
+        for variable, coeff in variable_reaction_coefficients.items():
             self.variables.append(variable)
             self.variable_coeffs.append(coeff)
 

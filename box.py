@@ -8,10 +8,8 @@ import copy
 from keyword import iskeyword
 from attrdict import AttrDict
 
-import errors
-from transport import Flow
-from process import Process
-from condition import Condition
+from . import errors
+from . import condition
 
 
 class Box:
@@ -51,8 +49,8 @@ class Box:
 
         if not fluid.quantified:
             raise errors.FluidNotQuantifiedError('Fluid was not quantified!')
-        self.fluid = copy.deepcopy(fluid)
-        self.condition = copy.deepcopy(condition) or Condition()
+        self.fluid = fluid
+        self.condition = copy.deepcopy(condition) if condition else condition.Condition()
         self.processes = copy.deepcopy(processes)
         self.reactions = copy.deepcopy(reactions)
         self.variables = AttrDict()
@@ -74,10 +72,21 @@ class Box:
             return self.name == other.name
         return False
 
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+             return self.name > other.name
+        return false
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+             return self.name < other.name
+        return false
+
     @property
     def mass(self):
-        return self.fluid.mass + sum([var.mass for var in self.variables])
-     
+        variable_mass = sum([var.mass for var_name, var in self.variables.items()])
+        return self.fluid.mass + variable_mass     
+
     @property
     def cond(self):
         return self.condition
@@ -86,8 +95,25 @@ class Box:
     def var(self):
         return self.variables
 
-    def get_volume(self, time=None, context=None):
-        return self.fluid.get_volume(time, context)
+    def get_volume(self, context=None):
+        return self.fluid.get_volume(context)
+
+    def get_concentration(self, variable, context=None):
+        """ Returns the mass concentration [kg/kg] of variable within the box. """
+        if self.mass.magnitude > 0:
+            concentration = self.variables[variable.name].mass / self.mass
+            concentration = concentration.to_base_units()
+            return concentration
+        return 0
+
+    def get_vconcentration(self, variable, context=None):
+        """ Returns the volumetric concentration [kg/m^3] of variable within the box. """
+        box_volume = self.get_volume(context)
+        if box_volume.magnitude > 0:
+            concentration = self.variables[variable.name].mass / box_volume
+            concentration = concentration.to_base_units()
+            return concentration
+        return 0
 
         
             

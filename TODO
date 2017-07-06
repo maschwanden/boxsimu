@@ -1,14 +1,12 @@
 TODO:
-
-- Rewrite all function of variables-sinks and sources to return a 2D numpy array with the structure of: Rows: Boxes and Columns: Variables
+- Define the boxmodelsystem2. And write tests for it. Implement all methods and things that are needed that is works.
+- make interface with the rate lambda functions nicer: at the moment if the user wants to access the conditions of other boxes very long expressions have to be types: for example:  c.box_upper_ocean.cond.T 
 - make nice plot interface
 - incorporate processes and fluxes
 - incorporate reactions
 - make reactions stop if one of the educts is not available anymore
 - make gui
 - stability criterion for timesteps?!
-- Make a way to specify input concentrations of flows from outside the system
-- Make a way to specify wheter a flow that goes outside the system transports variables with it or not: E.g. evaporation of surface ocean water will not transport significant amounts of nutrients or salinity into the atmosphere were on the other hand a flow from a multi-lake model into the ocean will for sure transport significant amounts of nutrients.
 - Think about a way to calculate the timestep more efficient:
   --> 
 

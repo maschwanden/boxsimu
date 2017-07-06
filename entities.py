@@ -7,8 +7,8 @@ Created on Thu Jun 23 07:56:18 2016
 import copy
 import numpy as np
 
-import utils
-import errors
+from . import utils
+from . import errors
 
 class BaseMassEntity:
     def __init__(self, name):
@@ -18,11 +18,24 @@ class BaseMassEntity:
         self.units = None
         self._quantified = False
 
+    def __hash__(self):
+        return hash(self.name)
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             raise ValueError('Equality can only be checked for instance '\
                     'of the same class.')
         return self.name == other.name
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+             return self.name > other.name
+        return false
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+             return self.name < other.name
+        return false
 
     def __add__(self, other):
         if self == other:
@@ -50,12 +63,6 @@ class BaseMassEntity:
         self_copy._quantified = True
         return self_copy
 
-    def get_empty_copy(self):
-        """ Returns a deepcopy of the current variable instance with zero mass. """
-        self_copy = copy.deepcopy(self)
-        self_copy.mass *= 0
-        return self_copy
-
 
 class Fluid(BaseMassEntity):
     """ Represents a Fluid that fills a Box.
@@ -79,19 +86,18 @@ class Fluid(BaseMassEntity):
                              'have the dimension of weight per volume')
         super(Fluid, self).__init__(name)
             
-    def get_rho(self, time=None, context=None):
+    def get_rho(self, context=None):
         if callable(self.rho_expr):
-            if time is None or context is None:
+            if context is None:
                 raise ValueError('If rho is given as a dynamic expression '\
-                        '(function), appropriate parameters for time and '\
-                        'context must be given.')
-            rho = self.rho_expr(time, context)
+                        '(function), an appropriate context must be given.')
+            rho = self.rho_expr(context)
         else:
             rho = self.rho_expr
-        return rho
+        return rho.to_base_units()
     
-    def get_volume(self, time=None, context=None):
-        return self.mass / self.rho(time, context)
+    def get_volume(self, context=None):
+        return (self.mass / self.get_rho(context)).to_base_units()
             
 
 class Variable(BaseMassEntity):

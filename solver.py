@@ -13,11 +13,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 
-from transport import Flow
-from process import Process, Reaction
-from condition import Condition
-from solution import Solution
-import utils
+from . import solution
+from . import utils
 
 DEBUG = False
 
@@ -311,7 +308,7 @@ class Solver:
         # Start time of function
         start_time = time_module.time() 
         
-        sol = Solution(total_integration_time, dt, self.system.box_list)
+        sol = solution.Solution(total_integration_time, dt, self.system.box_list)
         
         progress = 0
         for i in range(N_time_steps):
@@ -361,7 +358,7 @@ class Solver:
         N_time_steps = int(total_integration_time/dt)
         time = total_integration_time * 0
         
-        sol = Solution(total_integration_time, dt, self.system.box_list)
+        sol = solution.Solution(total_integration_time, dt, self.system.box_list)
         
         progress = 0
         for i in range(N_time_steps):

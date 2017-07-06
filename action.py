@@ -8,6 +8,9 @@ class BaseAction:
 
     def __str__(self):
         return '<BaseAction {}: {}>'.format(self.name, self.rate)
+
+    def __hash__(self):
+        return hash(repr(self))
     
     def __call__(self, *args, **kwargs):
         rate = self.rate  # Default of rate

@@ -20,13 +20,15 @@ if cmd_subfolder not in sys.path:
 
 __all__ = ['action', 'box', 'condition', 'entities', 'process', 'solution', 'solver', 'system', 'tests', 'transport', 'utils']
 
-from box import Box
-from condition import Condition
-from entities import Fluid, Variable
-from process import Process, Reaction
-from solution import Solution
-from solver import Solver
-from system import BoxModelSystem
-from transport import BaseTransport, Flow, Flux
-
+from . import action
+from . import box
+from . import condition
+from . import entities
+from . import errors
+from . import process
+from . import solution
+from . import solver
+from . import system
+from . import transport
+from . import utils
 

@@ -4,19 +4,21 @@ Created on Fri Jun 24 18:57:31 2016
 
 @author: aschi
 """
+import copy
 
 from scipy import integrate
 
 from pint import UnitRegistry
 ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
-import utils
-import errors
-import box
-from action import BaseAction
+from . import action
+from . import box
+from . import errors
+from . import entities
+from . import utils
 
 
-class BaseTransport(BaseAction):
+class BaseTransport(action.BaseAction):
     """ Represents a basic transport of a substance or solvent.
     
     Attributes:
@@ -72,7 +74,8 @@ class Flow(BaseTransport):
     - 
     """
 
-    def __init__(self, name, source_box, target_box, rate, tracer_transport=True):
+    def __init__(self, name, source_box, target_box, rate, tracer_transport=True, 
+            concentrations={}):
         if source_box == target_box:
             raise ValueError('target_box and source_box must not be equal!')
         
@@ -87,10 +90,20 @@ class Flow(BaseTransport):
         # (tracers) from the source box to the target box. If set to False only fluid
         # mass will be transported and no variable mass is removed from the source box.
         self.tracer_transport = tracer_transport 
-
+        
         self.variables = []
         self.concentrations = {}
-    
+
+        # Check if variable_concentration_dict is valid
+        for variable, concentration in concentrations.items():
+            if not isinstance(variable, entities.Variable):
+                raise ValueError('Keys of the variable_concentration_dict must be '\
+                        'instances of the class Variable!')
+            utils.dimensionality_check_dimless(concentration)
+            var_copy = copy.deepcopy(variable)
+            self.variables.append(var_copy)
+            self.concentrations[var_copy] = concentration
+
         super(Flow, self).__init__(name, source_box, target_box, rate)
 
     def __str__(self):
@@ -98,19 +111,17 @@ class Flow(BaseTransport):
     
     def add_transported_variable(self, variable, concentration):
         """ Adds a variable to the flow: This variable is then transported into the
-        target box. Only for Flows that have no source box!
+        target box. Only for Flows that have no source box (source_box=None)!
         """
 
         if self.source_box:
             raise ValueError('Fixed variable concentrations can only be set for Flows with no '\
                     'source_box set (source_box=None)!')
-        conc = concentration.to_base_units()
-        utils.dimensionality_check_mass_dimless(conc)
-
-        if not variable.quantified:
-            raise errors.VariableNotQuantifiedError('Variable was not quantified!')
-        self.variables.append(variable)
-        self.concentrations[variable.name] = conc
+        if not isinstance(variable, entities.Variable):
+            raise ValueError('Keys of the variable_concentration_dict must be '\
+                    'instances of the class Variable!')
+        utils.dimensionality_check_dimless(concentration)
+        self.concentrations[variable] = concentration
              
         
 class Flux(BaseTransport):
@@ -132,12 +143,10 @@ class Flux(BaseTransport):
         self.name = name
         if source_box == target_box:
             raise ValueError('target_box and source_box must not be equal!')
-        if not (isinstance(source_box, Box) and isinstance(target_box, Box)):
+        if not (isinstance(source_box, box.Box) and isinstance(target_box, box.Box)):
             raise ValueError('The parameters source_box and target_box must be'\
                              'instances of the class Box!')
 
-        if not variable.quantified:
-            raise errors.VariableNotQuantifiedError('Variable was not quantified!')
         self.variable = variable
         
         super(Flux, self).__init__(name, source_box, target_box, rate)

@@ -31,10 +31,6 @@ class Condition(AttrDict):
                 raise ValueError('Name must be a valid python '\
                         'variable name!')
 
-            if callable(value):
-                raise ValueError('Conditions are constants. '\
-                        'Therefore no callables are allowed.')
-
     def set_surrounding_condition(self, surrounding_condition):
         """ Set surrounding condition.
         
