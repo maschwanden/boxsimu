@@ -1,4 +1,14 @@
 TODO:
+- Write all System functions new as: 
+  -> 1Dlist instead of 1Darray 
+  -> then reproduce all the 1Darray functions using the already implemented method decorator 
+  -> Then rewrite all the tests to test both (1Dlist and 1Darray) methods.
+  -> Finish writing the tests for the second boxmodelsystem (boxmodelsystem2)
+  -> Write the Solver
+  -> Write general plotting interface within the Solution class
+  -> Reevaluate the project
+  
+  
 - Define the boxmodelsystem2. And write tests for it. Implement all methods and things that are needed that is works.
 - make interface with the rate lambda functions nicer: at the moment if the user wants to access the conditions of other boxes very long expressions have to be types: for example:  c.box_upper_ocean.cond.T 
 - make nice plot interface

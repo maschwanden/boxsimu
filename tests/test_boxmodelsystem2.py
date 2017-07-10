@@ -2,8 +2,10 @@
 """
 Created on Thu Jun 23 10:45:10 2016
 
-@author: aschi
+@author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
+
 """
+
 import unittest
 from unittest import TestCase
 
@@ -30,7 +32,7 @@ from boxsimu.system import BoxModelSystem
 from boxsimu.process import Process, Reaction
 from boxsimu.solver import Solver
 from boxsimu import utils
-from boxsimu_simulations import boxmodelsystem2
+from boxsimu.simulations import boxmodelsystem2
 
 
 class BoxModelSystem1Test(TestCase):
@@ -106,16 +108,16 @@ class BoxModelSystem1Test(TestCase):
         self.assertEqual(sediment_context.pH, 7.7)
 
         # Test the accessability of the condition attributes of other boxes:
-        self.assertEqual(global_context.upper_ocean_cond.T.magnitude, 280)
-        self.assertEqual(global_context.deep_ocean_cond.pH, 8.1)
-        self.assertEqual(lake_context.upper_ocean_cond.T.magnitude, 280)
-        self.assertEqual(lake_context.deep_ocean_cond.pH, 8.1)
-        self.assertEqual(upper_ocean_context.lake_cond.T.magnitude, 290)
-        self.assertEqual(upper_ocean_context.deep_ocean_cond.pH, 8.1)
-        self.assertEqual(deep_ocean_context.upper_ocean_cond.T.magnitude, 280)
-        self.assertEqual(deep_ocean_context.lake_cond.pH, 7.0)
-        self.assertEqual(sediment_context.upper_ocean_cond.T.magnitude, 280)
-        self.assertEqual(sediment_context.lake_cond.pH, 7.0)
+        self.assertEqual(global_context.upper_ocean.condition.T.magnitude, 280)
+        self.assertEqual(global_context.deep_ocean.condition.pH, 8.1)
+        self.assertEqual(lake_context.upper_ocean.condition.T.magnitude, 280)
+        self.assertEqual(lake_context.deep_ocean.condition.pH, 8.1)
+        self.assertEqual(upper_ocean_context.lake.condition.T.magnitude, 290)
+        self.assertEqual(upper_ocean_context.deep_ocean.condition.pH, 8.1)
+        self.assertEqual(deep_ocean_context.upper_ocean.condition.T.magnitude, 280)
+        self.assertEqual(deep_ocean_context.lake.condition.pH, 7.0)
+        self.assertEqual(sediment_context.upper_ocean.condition.T.magnitude, 280)
+        self.assertEqual(sediment_context.lake.condition.pH, 7.0)
 
     def test_context_evaluation_lambda_func(self):
         system_copy = copy.deepcopy(self.system)
@@ -143,7 +145,13 @@ class BoxModelSystem1Test(TestCase):
     # Fluid and Variable Mass/Concentration Vectors/Matrices
     #####################################################
 
-    def test_fluid_mass_1Darray(self):
+    def test_fluid_mass_1Dlist_1Darray(self):
+        m = self.system.get_fluid_mass_1Dlist()
+        self.assertEqual(m[self.la_id], 1e16*ur.kg)
+        self.assertEqual(m[self.uo_id], 3e19*ur.kg)
+        self.assertEqual(m[self.do_id], 1e21*ur.kg)
+        self.assertEqual(m[self.se_id], 1e10*ur.kg)
+
         m = self.system.get_fluid_mass_1Darray()
         self.assertEqual(m[self.la_id], 1e16)
         self.assertEqual(m[self.uo_id], 3e19)
@@ -328,27 +336,29 @@ class BoxModelSystem1Test(TestCase):
             self.assertEqual(Q[self.do_id, var.ID], do_input_c * do_inflow) 
             self.assertEqual(Q[self.se_id, var.ID], 0)
 
-
-
     def test_variable_process_sink_1Darray(self):
         po4 = self.system.variables['po4']
         no3 = self.system.variables['no3']
          
         s = self.system.get_variable_process_sink_1Darray(po4, 1*ur.second)
         m = self.system.get_variable_mass_1Darray(po4)
-        self.assertListEqual(s[self.la_id], 0)
-        self.assertListEqual(s[self.uo_id], m[self.uo_id]*0.01)
-        self.assertListEqual(s[self.do_id], 0)
-        self.assertListEqual(s[self.se_id], 0)
+        self.assertEqual(s[self.la_id], 0)
+        self.assertEqual(s[self.uo_id], m[self.uo_id]*0.01)
+        self.assertEqual(s[self.do_id], 0)
+        self.assertEqual(s[self.se_id], 0)
 
-        s = self.system.get_variable_process_sink_1Darray(po4, 1*ur.second)
-        self.assertListEqual(s.tolist(), [0, 0])
+        s = self.system.get_variable_process_sink_1Darray(no3, 1*ur.second)
+        m = self.system.get_variable_mass_1Darray(no3)
+        self.assertEqual(s[self.la_id], 0)
+        self.assertEqual(s[self.uo_id], m[self.uo_id]*0.01)
+        self.assertEqual(s[self.do_id], 0)
+        self.assertEqual(s[self.se_id], 0)
 
-    def test_variable_process_sink_2Darray(self):
-        S = self.system.get_all_variable_process_sink_2Darray(0*ur.second)
-        self.assertEqual(S[self.uo_id, 0], 0)
-        self.assertEqual(S[self.do_id, 0], 0)
-
+#     def test_variable_process_sink_2Darray(self):
+#         S = self.system.get_all_variable_process_sink_2Darray(0*ur.second)
+#         self.assertEqual(S[self.uo_id, 0], 0)
+#         self.assertEqual(S[self.do_id, 0], 0)
+# 
 #     def test_variable_process_source_1Darray(self):
 #         var = self.system.variables['po4']
 #         q = self.system.get_variable_process_source_1Darray(var, 0*ur.second)

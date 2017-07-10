@@ -2,145 +2,37 @@
 """
 Created on Thu Jun 23 08:42:29 2016
 
-@author: aschi
+@author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
+
 """
 
-from pint import DimensionalityError
-
-from pint import UnitRegistry
-ur = UnitRegistry()
+import numpy as np
 
 
-def dimensionality_check(quantitiy, *units):
-    """ Checks if a given value has the correct dimensions in pint units.
+def _1Darray_to_2Darray_method(vector_method):
+    """Return method that returns 2Darray from 1Darrays from vector_method."""
+    def _2Darray_method(self, *args):
+        tmp_vector_list = [0] * self.N_variables
+        for variable_name, variable in self.variables.items():
+            vector = vector_method(self, variable, *args, numpy_array=True)
+            tmp_vector_list[variable.id] = vector
+        return np.array(tmp_vector_list).T
+    return _2Darray_method
+
+
+def np_pint_dot(a, b):
+    """Calculate dot product of numpy arrays of pint Quantities.
     
-    Attribute:
-    - quantitiy (pint quantity): The quantitiy to check.
-    - units (list of pint units): Reference units of the desired dimensions.
-    
-    Return:
-    - Dimensionality check status (bool): True if dimensions are compatible, 
-                                          False if not 
+    Calculat the dot product of two numpy arrays of pint Quantities while
+    the units are conserved.
+
+    Note: If numpy.dot is used the resulting array has no units anymore.
+
     """
-    try:
-        for u in units:
-            if quantitiy.dimensionality == u.dimensionality:
-                return True
-    except AttributeError:
-        dimensions = [u.dimensionality for u in units]
-        if isinstance(quantity, float) or isinstance(quantity, int):
-            if ur.dimensionless.dimensionality in dimensions:
-                return True
-    return False
+    a_units = a.units
+    b_units = b.units
+
+    return np.dot(a.magnitude, b.magnitude) * a_units * b_units
 
 
-def dimensionality_check_err(quantitiy, *units):
-    """ Checks if a given quantitiy has the correct dimensions in pint units 
-    and throws a ValueError if the dimensions are incorrect.
-    
-    Attribute:
-    - quantitiy (pint quantity): The quantitiy to check.
-    - units (list of pint units): Reference units of the desired dimensions.
-    """
-    dimensions = [u.dimensionality for u in units]
-    if not dimensionality_check(quantitiy, *units):
-        if len(units) > 1:
-            raise ValueError(
-                'Invalid units {}: Must be given in one of the '
-                'following dimensions: {}.'.format(quantitiy.dimensionality, 
-                                                   dimensions)
-                )
-        else:
-            raise ValueError(
-                'Invalid units {}: Must be given in '
-                'the dimension: {}'.format(quantitiy.dimensionality, dimensions)
-            )
 
-
-def dimensionality_check_mass(quantitiy):
-    """ Checks if a given value has dimensions of mass in pint units."""
-    return dimensionality_check(quantitiy, ur.kg)
-
-
-def dimensionality_check_density(quantitiy):
-    """ Checks if a given value has dimensions of density in pint units."""
-    return dimensionality_check(quantitiy, ur.kg/ur.meter**3)
-
-
-def dimensionality_check_volume_flux(quantitiy):
-    """ Checks if a given value has dimensions of volume flux in pint units."""
-    return dimensionality_check(quantitiy, ur.meter**3/ur.second)
-
-
-def dimensionality_check_mass_flux(quantitiy):
-    """ Checks if a given value has dimensions of mass flux in pint units."""
-    return dimensionality_check(quantitiy, ur.kg/ur.second)
-
-
-def dimensionality_check_mass_err(quantitiy):
-    """ 
-    Raises Error if a given value has not dimensions of mass in pint units.
-    """
-    dimensionality_check_err(quantitiy, ur.kg)
-
-
-def dimensionality_check_density_err(quantitiy):
-    """ 
-    Raises Error if a given value has not dimensions of density in pint units.
-    """
-    dimensionality_check_err(quantitiy, ur.kg/ur.meter**3)
-
-
-def dimensionality_check_volume_flux_err(quantitiy):
-    """ 
-    Raises Error if a given value has not dimensions of volume flux in pint units.
-    """
-    dimensionality_check_err(quantitiy, ur.meter**3/ur.second)
-
-
-def dimensionality_check_mass_flux_err(quantitiy):
-    """ 
-    Raises Error if a given value has not dimensions of mass flux in pint units.
-    """
-    dimensionality_check_err(quantitiy, ur.kg/ur.second)
-
-
-def dimensionality_check_dimless(quantitiy):
-    """ 
-    Raises Error if a given value has not dimensions of mass flux in pint units.
-    """
-    dimensionality_check_err(quantitiy, ur.dimensionless)
-
-
-def magnitude_in_current_units(quantity):
-    """ Splits a pint.Quantity into its magnitude and the current unit. 
-    Attribute:
-    - quantity (pint.Quantity)
-    
-    Return:
-    - magnitude (float): Magnitude of the parameter quantity
-    - current_unit (pint.UnitsContainer): Units of quantity    
-    """
-    units = quantity.units
-    mag = quantity.magnitude
-    return mag, units
-
-
-def magnitude_in_base_units(quantity):
-    """ Splits a pint.Quantity into its magnitude in base units and the 
-    corresponding base units.
-    
-    Attribute:
-    - quantity (pint.Quantity)
-    
-    Returns:
-    - magnitude (float): Magnitude in base units of the parameter quantity
-    - base_units (pint.UnitsContainer): Base units of quantity
-    """
-    quantity_base_units = quantity.to_base_units()
-    base_units = quantity_base_units.units
-    magnitude = quantity_base_units.magnitude
-    return magnitude, base_units
-    
-
-      
