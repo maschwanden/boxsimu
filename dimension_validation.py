@@ -77,12 +77,12 @@ def dimensionality_check_time(quantity):
     """Check if quantity has dimensions of [T]."""
     return dimensionality_check(quantity, ur.second)
 
-def dimensionality_check_volume_transport(quantity):
+def dimensionality_check_volume_per_time(quantity):
     """Check if quantity has dimensions of [L^3/T]."""
     return dimensionality_check(quantity, ur.meter**3 / ur.second)
 
 
-def dimensionality_check_mass_transport(quantity):
+def dimensionality_check_mass_per_time(quantity):
     """Check if quantity has dimensions of [M/T]."""
     return dimensionality_check(quantity, ur.kg / ur.second)
 
@@ -103,11 +103,11 @@ def dimensionality_check_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [T]."""
     dimensionality_check_err(quantity, ur.second)
 
-def dimensionality_check_volume_transport_err(quantity):
+def dimensionality_check_volume_per_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [L^3/T]."""
     dimensionality_check_err(quantity, ur.meter**3 / ur.second)
 
-def dimensionality_check_mass_transport_err(quantity):
+def dimensionality_check_mass_per_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [M/T]."""
     dimensionality_check_err(quantity, ur.kg / ur.second)
 

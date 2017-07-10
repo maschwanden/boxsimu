@@ -17,7 +17,7 @@ from . import condition as bs_condition
 
 
 class Box:
-    """Perfectly mixed Box in a single- or multibox system.
+    """Box in a single- or multibox system.
 
     A Box contains one Fluid and zero to multiple Variables.
     Processes and Reactions can be defined that alter the .
@@ -110,22 +110,29 @@ class Box:
     def var(self):
         return self.variables
 
+    @property
+    def pint_ur(self):
+        return fluid.mass._REGISTRY
+
     def get_volume(self, context=None):
         return self.fluid.get_volume(context)
 
-    def get_concentration(self, variable, context=None):
-        """ Returns the mass concentration [kg/kg] of variable within the box. """
+    def get_concentration(self, variable):
+        """Return the mass concentration [kg/kg] of variable."""
         if self.mass.magnitude > 0:
             concentration = self.variables[variable.name].mass / self.mass
             concentration = concentration.to_base_units()
             return concentration
-        return 0
+        return 0 * self.pint_ur.dimensionless
 
     def get_vconcentration(self, variable, context=None):
-        """ Returns the volumetric concentration [kg/m^3] of variable within the box."""
-        box_volume = self.get_volume(context)
-        if box_volume.magnitude > 0:
-            concentration = self.variables[variable.name].mass / box_volume
+        """Return the volumetric concentration [kg/m^3] of variable."""
+        volume = self.get_volume(context)
+        if volume.magnitude > 0:
+            concentration = self.variables[variable.name].mass / volume
             concentration = concentration.to_base_units()
             return concentration
-        return 0
+        return 0 * self.pint_ur.dimensionless
+
+
+

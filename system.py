@@ -69,7 +69,6 @@ class BoxModelSystem:
             box_dict[box.name] = box
         self.boxes = AttrDict(box_dict)
 
-        self._pint_ur = None
         self.init_system()
 
     def init_system(self): 
@@ -153,16 +152,6 @@ class BoxModelSystem:
                 self.variables[var_name].id = var_id
                 var_id += 1
 
-    def _get_pint_unit_registry(self):
-        pint_ur = None
-
-        # Get pint registry from fluid masses (because at least one box
-        # must exist and must have a fluid associated with a valid mass)
-        for box in self.box_list:
-            if not pint_ur:
-                pint_ur = box.fluid.mass._REGISTRY
-        return pint_ur
-
     @property
     def box_list(self):
         return [self.boxes[box_name] for box_name in self.box_names]
@@ -200,9 +189,14 @@ class BoxModelSystem:
 
     @property
     def pint_ur(self):
-        if self._pint_ur is None:
-            self._pint_ur = self._get_pint_unit_registry()
-        return self._pint_ur
+        pint_ur = None
+
+        # Get pint registry from fluid masses (because at least one box
+        # must exist and must have a fluid associated with a valid mass)
+        for box in self.box_list:
+            if not pint_ur:
+                pint_ur = box.fluid.mass._REGISTRY
+        return pint_ur
 
     def get_box_context(self, box=None):
         """Return context of box for evaluating user-defined functions.
@@ -246,157 +240,125 @@ class BoxModelSystem:
     #####################################################
 
     def get_fluid_mass_1Darray(self):
-        """Return current fluid masses of all boxes.
+        """Return fluid masses of all boxes."""
+        m = np.zeros(self.N_boxes)
+
+        units = []
+        for box_name, box in self.boxes.items():
+            fluid_mass = box.fluid.mass.to_base_units()
+            bs_dim_val.dimensionality_check_mass_err(fluid_mass)
+            units.append(fluid_mass.units)
+            m[box.id] = fluid_mass.magnitude
+        
+        units_set = set(units)
+        if len(units_set) == 1:
+            m_units = units_set.pop()
+        elif len(units_set) == 0:
+            m_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return m * m_units
+
+    def get_variable_mass_1Darray(self, variable):
+        """Return masses of variable of all boxes.
 
         Args:
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
+            variable (Variable): Variable of which the mass vector should 
+                be returned.
 
         """
         m = np.zeros(self.N_boxes)
 
         units = []
         for box_name, box in self.boxes.items():
-            box_fluid_mass = box.fluid.mass.to_base_units()  # Convert to BU
-            units.append(box_fluid_mass.units)
-            bs_dim_val.dimensionality_check_mass_err(box_fluid_mass)
-            m[box.id] = box_fluid_mass.magnitude
-        
+            variable_mass = box.variables[variable.name].mass.to_base_units()
+            bs_dim_val.dimensionality_check_mass_err(variable_mass)
+            units.append(variable_mass.units)
+            m[box.id] = variable_mass.magnitude
+
         units_set = set(units)
         if len(units_set) == 1:
             m_units = units_set.pop()
         elif len(units_set) == 0:
-            m_units = 1
+            m_units = self.pint_ur.kg / self.pint_ur.second
         else:
             raise DimensionalityError(units_set.pop(), units_set.pop())
         return m * m_units
 
-    def get_variable_mass_1Darray(self, variable, 
-            only_magnitude=False, numpy_array=False):
-        """Return magnitude of current variable masses of all boxes.
+    def get_variable_concentration_1Darray(self, variable):
+        """Return concentration [M/M] of variable of all boxes.
 
         Args:
-            variable (Variable): Variable of which the mass vector should be returned.
-                only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
+            variable (Variable): Variable of which the concentration vector 
+                should be returned.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            m = np.zeros(self.N_boxes)
-        else:
-            m = [0] * self.N_boxes
+        c = np.zeros(self.N_boxes)
 
+        units = []
         for box_name, box in self.boxes.items():
-            var_mass = box.variables[variable.name].mass.to_base_units()
-            bs_dim_val.dimensionality_check_mass_err(var_mass)
-
-            if only_magnitude:
-                m[box.id] = var_mass.magnitude
-            else:
-                m[box.id] = var_mass
-        return m
-
-    def get_variable_concentration_1Darray(self, variable, 
-            only_magnitude=False, numpy_array=False):
-        """Return current variable concentration [M/M] of all boxes.
-
-        Args:
-            variable (Variable): Variable of which the concentration vector should be returned.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
-
-        """
-        if numpy_array:
-            only_magnitude = True
-            c = np.zeros(self.N_boxes)
-        else:
-            c = [0] * self.N_boxes
-
-        for box_name, box in self.boxes.items():
-            var = box.variables[variable.name]
-            if box.fluid.mass.magnitude == 0 or var.mass.magnitude == 0:
-                c[box.id] = 0
+            variable_mass = box.variables[variable.name].mass
+            if box.fluid.mass.magnitude == 0 or variable_mass.magnitude == 0:
+                concentration = 0 * self.pint_ur.dimensionless
             else:
                 concentration = (var.mass / box.fluid.mass).to_base_units()
-                if only_magnitude:
-                    c[box.id] = concentration.magnitude
-                else:
-                    c[box.id] = concentration
-        return c
+            bs_dim_val.dimensionality_check_dimless_err(concentration)
+            units.append(concentration.units)
+            c[box.id] = concentration.magnitude
+
+        units_set = set(units)
+        if len(units_set) == 1:
+            c_units = units_set.pop()
+        elif len(units_set) == 0:
+            c_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return c * c_units
 
     #####################################################
     # Mass Flow Vectors/Matrices
     #####################################################
 
-    def get_fluid_mass_internal_flow_2Darray(self, time, flows=None, 
-            only_magnitude=False, numpy_array=False):
-        """Return fluid mass exchange rates due to flows between boxes of the system.
+    def get_fluid_mass_internal_flow_2Darray(self, time, flows=None):
+        """Return fluid mass exchange rates due to flows between boxes.
 
-        Return a 2D list (Matrix-like) with the fluid mass exchange rates between 
-        boxes of the system. Row i of the 2D list represents the flows that go 
-        away from box i (sinks). Column j of the 2D list represents the flows 
-        that go towards box j (sources).
+        Return a 2D list (Matrix-like) with the fluid mass exchange rates 
+        between boxes of the system. Row i of the 2D list represents the 
+        flows that go away from box i (sinks). Column j of the 2D list 
+        represents the flows that go towards box j (sources).
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be evaluated.
-            flows (list of Flow): List of the flows which should be considered. Default value
-                is None. If flows==None, all flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
+            time (pint.Quantity [T]): Time at which the flows shall be 
+                evaluated.
+            flows (list of Flow): List of the flows which should be 
+                considered. Default value is None. If flows==None, all 
+                flows of the system are considered.  
 
         """
-        if numpy_array:
-            only_magnitude = True
-            A = np.zeros([self.N_boxes, self.N_boxes])
-        else:
-            A = [[0 for col in range(self.N_boxes)]
-                 for row in range(self.N_boxes)]
-
+        A = np.zeros([self.N_boxes, self.N_boxes])
         flows = flows or self.flows
 
+        units = []
         for flow in flows:
-            src_box = flow.source_box
-            trg_box = flow.target_box
-
-            if src_box is None or trg_box is None:
+            if flow.source_box is None or flow.target_box is None:
                 continue
+            src_box_context = self.get_box_context(flow.source_box)
+            fluid_flow_rate = flow(time, src_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            units.append(fluid_flow_rate.units)
+            A[flow.source_box.id, flow.target_box.id] += \
+                    fluid_flow_rate.magnitude
 
-            src_box_context = self.get_box_context(src_box)
-            mass_flow_rate = flow(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(mass_flow_rate)
+        units_set = set(units)
+        if len(units_set) == 1:
+            A_units = units_set.pop()
+        elif len(units_set) == 0:
+            A_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return A * A_units
 
-            if only_magnitude:
-                if numpy_array:
-                    A[src_box.id, trg_box.id] += mass_flow_rate.magnitude
-                else:
-                    A[src_box.id][trg_box.id] += mass_flow_rate.magnitude
-            else:
-                A[src_box.id][trg_box.id] += mass_flow_rate
-        return A
-
-    def get_fluid_mass_flow_sink_1Darray(self, time, flows=None, 
-            only_magnitude=False, numpy_array=False):
+    def get_fluid_mass_flow_sink_1Darray(self, time, flows=None):
         """Return fluid mass sinks due to flows out of the system.
 
         Return 1D list with fluid mass sinks due to flows out of the system.
@@ -404,50 +366,35 @@ class BoxModelSystem:
         of the system.
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be evaluated.
-            flows (list of Flow): List of the flows which should be considered. Default value
-                is None. If flows==None, all flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
+            time (pint.Quantity [T]): Time at which the flows shall be 
+                evaluated.
+            flows (list of Flow): List of the flows which should be 
+                considered. Default value is None. If flows==None, all 
+                flows of the system are considered.
 
         """
-        print('numpy_array', numpy_array)
-        if numpy_array:
-            only_magnitude = True
-            s = np.zeros(self.N_boxes)
-        else:
-            s = [0] * self.N_boxes
-
-        for val in s:
-            print('val', val)
-            print('type(val)', type(val))
-
+        s = np.zeros(self.N_boxes)
         flows = flows or self.flows
-        sink_flows = bs_transport.Flow.get_all_to(None, flows)
+        flows = bs_transport.Flow.get_all_to(None, flows)
 
-        for flow in sink_flows:
-            src_box = flow.source_box
+        units = []
+        for flow in flows:
+            src_box_context = self.get_box_context(flow.source_box)
+            fluid_flow_rate = flow(time, src_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            units.append(fluid_flow_rate.units)
+            s[flow.source_box.id] += fluid_flow_rate.magnitude
 
-            src_box_context = self.get_box_context(src_box)
-            mass_flow_rate = flow(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(mass_flow_rate)
-            
-            print('mass_flow_rate', mass_flow_rate)
-            print('type(mass_flow_rate)', type(mass_flow_rate))
-            if only_magnitude:
-                s[src_box.id] += mass_flow_rate.magnitude
-            else:
-                s[src_box.id] += mass_flow_rate
-        
-        print('###################################################################################')
-        return s
+        units_set = set(units)
+        if len(units_set) == 1:
+            s_units = units_set.pop()
+        elif len(units_set) == 0:
+            s_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return s * s_units
 
-    def get_fluid_mass_flow_source_1Darray(self, time, flows=None, 
-            only_magnitude=False, numpy_array=False):
+    def get_fluid_mass_flow_source_1Darray(self, time, flows=None):
         """Return fluid mass sources due to flows from outside the system.
 
         Return 1D list with fluid mass sources due to flows from outside the 
@@ -455,39 +402,33 @@ class BoxModelSystem:
         outside the system into box i.
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be evaluated.
-            flows (list of Flow): List of the flows which should be considered. Default value
+            time (pint.Quantity [T]): Time at which the flows shall be 
+                evaluated.
+            flows (list of Flow): List of the flows which should be considered.
+            Default value
                 is None. If flows==None, all flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            q = np.zeros(self.N_boxes)
-        else:
-            q = [0] * self.N_boxes
-
+        q = np.zeros(self.N_boxes)
         flows = flows or self.flows
-        source_flows = bs_transport.Flow.get_all_from(None, flows)
+        flows = bs_transport.Flow.get_all_from(None, flows)
 
-        for flow in source_flows:
-            src_box = flow.source_box
-            trg_box = flow.target_box
+        units = []
+        for flow in flows:
+            trg_box_context = self.get_box_context(flow.target_box)
+            fluid_flow_rate = flow(time, trg_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            units.append(fluid_flow_rate.units)
+            q[flow.target_box.id] += fluid_flow_rate.magnitude
 
-            trg_box_context = self.get_box_context(trg_box)
-            mass_flow_rate = flow(time, trg_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(mass_flow_rate)
-
-            if only_magnitude:
-                q[trg_box.id] += mass_flow_rate.magnitude
-            else:
-                q[trg_box.id] += mass_flow_rate
-        return q
+        units_set = set(units)
+        if len(units_set) == 1:
+            q_units = units_set.pop()
+        elif len(units_set) == 0:
+            q_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return q * q_units
 
     #####################################################
     # Variable Sink/Source Vectors/Matrices
@@ -496,68 +437,58 @@ class BoxModelSystem:
     # FLOW
 
     def get_variable_internal_flow_2Darray(self, variable, time, f_flow, 
-            flows=None, only_magnitude=False, numpy_array=False):
+            flows=None):
         """Return variable exchange rates between the boxes due to flows.
 
         Return 2D list of variable exchange rates due to fluid flows between 
         the boxes and the corresponding passive transport of variable.
 
         Args:
-            variable (Variable): Variable of which the sink vector should be returned.
-            time (pint.Quantity [T]): Time at which the flows shall be evaluated.
-            f_flow (1D array): Reduction of the mass flow coefficients due to mass
-                conservation constraints (if an box is empty no fluid can flow away from this
-                box). Coefficients have values in the range [0,1]. These coefficents are
-                returned from Solver.calculate_mass_flows.
-            flows (list of Flow): List of the flows which should be considered. Default value
-                is None. If flows==None, all flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats are returned
-                from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array is returned.
-                If set to True only the magnitude (in base units) of the quantities are returned.
-                Therefore if numpy_array is set to True, only_magnitude is automatically set to True
-                too.
+            variable (Variable): Variable of which the sink vector should be 
+                returned.
+            time (pint.Quantity [T]): Time at which the flows shall be 
+                evaluated.
+            f_flow (1D array): Reduction of the mass flow coefficients due 
+                to mass conservation constraints (if an box is empty no 
+                fluid can flow away from this box). Coefficients have 
+                values in the range [0,1]. These coefficents are returned 
+                from Solver.calculate_mass_flows.
+            flows (list of Flow): List of the flows which should be 
+                considered. Default value is None. If flows==None, all 
+                flows of the system are considered.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            A = np.zeros([self.N_boxes, self.N_boxes])
-        else:
-            A = [[0 for col in range(self.N_boxes)]
-                 for row in range(self.N_boxes)]
-
+        A = np.zeros([self.N_boxes, self.N_boxes])
         flows = flows or self.flows
 
+        units = []
         for flow in flows:
-            src_box = flow.source_box
-            trg_box = flow.target_box
-
-            if src_box is None or trg_box is None:
+            if flow.source_box is None or flow.target_box is None:
                 continue
+            src_box_context = self.get_box_context(flow.source_box)
+            fluid_flow_rate = flow(time, src_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            concentration = flow.source_box.get_concentration(variable)
+            bs_dim_val.dimensionality_check_dimless(concentration)
 
-            src_box_context = self.get_box_context(src_box)
-            mass_flow_rate = flow(time, src_box_context)
-            bs_dim_val.dimensionality_check_mass_transport_err(mass_flow_rate)
+            variable_flow_rate = (fluid_flow_rate *
+                    concentration).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time(variable_flow_rate)
+            units.append(variable_flow_rate.units)
+            A[flow.source_box.id, flow.target_box.id] += \
+                    variable_flow_rate.magnitude
 
-            var_concentration = src_box.get_concentration(
-                variable, src_box_context)
-            bs_dim_val.dimensionality_check_dimless(var_concentration)
-
-            var_transported = mass_flow_rate * var_concentration
-            var_transported = var_transported.to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport(var_transported)
-            
-            if only_magnitude:
-                if numpy_array:
-                    A[src_box.id, trg_box.id] += var_transported.magnitude
-                else:
-                    A[src_box.id][trg_box.id] += var_transported.magnitude
-            else:
-                A[src_box.id][trg_box.id] += var_transported
-        return A
+        units_set = set(units)
+        if len(units_set) == 1:
+            A_units = units_set.pop()
+        elif len(units_set) == 0:
+            A_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return A * A_units
 
     def get_variable_flow_sink_1Darray( self, variable, time, f_flow, 
-            flows=None, only_magnitude=False, numpy_array=False):
+            flows=None): 
         """Return variable sinks due to flows out of the system for all boxes.
 
         The flow of variable from a box out of the system is returned as
@@ -579,51 +510,18 @@ class BoxModelSystem:
             flows (list of Flow): List of the flows which should be 
                 considered. Default value is None. If flows==None, all 
                 flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
         flows = flows or self.flows
-        tt_sink_flows = [flow for flow in bs_transport.Flow.get_all_to(None, flows) 
-                if flow.tracer_transport]
-        variable_concentration = self.get_variable_concentration_1Darray(
-                variable, only_magnitude, numpy_array)
-        mass_flow_sink_tmp = self.get_fluid_mass_flow_sink_1Darray(
-            time, flows=tt_sink_flows, only_magnitude=only_magnitude, 
-            numpy_array=numpy_array)
-
-        if numpy_array:
-            f_flow = np.array(f_flow)
-            # if numpy_arrays==True both vectors, mass_flow_sink and 
-            # variable_concentration, will have values in base units
-            # and only their magnitude is contained
-            mass_flow_sink = mass_flow_sink_tmp * f_flow
-            s = variable_concentration * mass_flow_sink
-        else:
-            f_flow = list(f_flow)
-            mass_flow_sink_tmp = list(mass_flow_sink_tmp)
-            mass_flow_sink = [a*b for a,b in zip(mass_flow_sink_tmp, f_flow)]
-            print()
-            print('mass_flow_sink {}'.format(mass_flow_sink))
-            print('variable_concentration {}'.format(variable_concentration))
-            for a in variable_concentration:
-                print('a', a)
-                print('type(a)', type(a))
-            for b in mass_flow_sink:
-                print('b', b)
-                print('type(b)', type(b))
-            s = [a*b for a,b in zip(variable_concentration, mass_flow_sink)]
-
-            print(s)
-            print()
+        flows = [flow for flow in bs_transport.Flow.get_all_to(None, flows) 
+                    if flow.tracer_transport]
+        concentrations = self.get_variable_concentration_1Darray(variable)
+        fluid_flow_rates = self.get_fluid_mass_flow_sink_1Darray(time, 
+                flows=flows) * f_flow
+        s = concentrations * fluid_flow_rates
         return s
 
-    def get_variable_flow_source_1Darray(self, variable, time, 
-            flows=None, only_magnitude=False, numpy_array=False):
+    def get_variable_flow_source_1Darray(self, variable, time, flows=None): 
         """Return variable sources due to flows from outside the system.
 
         The flow of variable from outside the system into system boxes 
@@ -640,37 +538,32 @@ class BoxModelSystem:
             flows (list of Flow): List of the flows which should be 
                 considered. Default value is None. If flows==None, all 
                 flows of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            q = np.zeros(self.N_boxes)
-        else:
-            q = [0] * self.N_boxes
-
+        q = np.zeros(self.N_boxes)
         flows = flows or self.flows
 
+        units = []
         for flow in bs_transport.Flow.get_all_from(None, flows):
-            trg_box = flow.target_box
-            variable_source = (flow(time, self.get_global_context()) * 
+            variable_flow_rate = (flow(time, self.get_global_context()) * 
                     flow.concentrations[variable]).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(variable_source)
-            if only_magnitude:
-                q[trg_box.id] += variable_source.magnitude
-            else:
-                q[trg_box.id] += variable_source
-        return q
+            bs_dim_val.dimensionality_check_mass_per_time_err(
+                    variable_flow_rate)
+            units.append(variable_flow_rate.units)
+            q[flow.target_box.id] += variable_flow_rate.magnitude
+
+        units_set = set(units)
+        if len(units_set) == 1:
+            q_units = units_set.pop()
+        elif len(units_set) == 0:
+            q_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return q * q_units
 
     # FLUX
 
-    def get_variable_internal_flux_2Darray(self, variable, time, 
-            fluxes=None, only_magnitude=False, numpy_array=False):
+    def get_variable_internal_flux_2Darray(self, variable, time, fluxes=None): 
         """Return variable flux exchange rates between boxes of the system.
 
         Returns a 2D list (Matrix-like) with the variable flux exchange
@@ -687,47 +580,34 @@ class BoxModelSystem:
             fluxes (list of Flow): List of the fluxes which should be 
                 considered. Default value is None. If fluxes==None, all 
                 fluxes of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            A = np.zeros([self.N_boxes, self.N_boxes])
-        else:
-            A = [[0 for col in range(self.N_boxes)]
-                 for row in range(self.N_boxes)]
-        
+        A = np.zeros([self.N_boxes, self.N_boxes])
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in fluxes 
                 if variable in flux.variables]
 
+        units = []
         for flux in variable_fluxes:
-            src_box = flux.source_box
-            trg_box = flux.target_box
-
-            if src_box is None or trg_box is None:
+            if flux.source_box is None or flux.target_box is None:
                 continue
 
-            src_box_context = self.get_box_context(src_box)
-            variable_mass_flux_rate = flux(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(variable_mass_flux_rate)
+            src_box_context = self.get_box_context(flux.source_box)
+            flux_rate = flux(time, src_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            units.append(flux_rate.units)
+            A[flux.source_box.id, flux.target_box.id] += flux_rate.magnitude
 
-            if only_magnitude:
-                if numpy_array:
-                    A[src_box.id, trg_box.id] += variable_mass_flux_rate.magnitude
-                else:
-                    A[src_box.id][trg_box.id] += variable_mass_flux_rate.magnitude
-            else:
-                A[src_box.id][trg_box.id] += variable_mass_flux_rate
-        return A
+        units_set = set(units)
+        if len(units_set) == 1:
+            A_units = units_set.pop()
+        elif len(units_set) == 0:
+            A_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return A * A_units
 
-    def get_variable_flux_sink_1Darray(self, variable, time, 
-            fluxes=None, only_magnitude=False, numpy_array=False):
+    def get_variable_flux_sink_1Darray(self, variable, time, fluxes=None):
         """Return variable sinks due to fluxes out of the system.
 
         The sinks of variable due to fluxes out of the system is 
@@ -741,38 +621,31 @@ class BoxModelSystem:
             fluxes (list of Flow): List of the fluxes which should be 
                 considered. Default value is None. If fluxes==None, all 
                 fluxes of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            s = np.zeros(self.N_boxes)
-        else:
-            s = [0] * self.N_boxes
-
+        s = np.zeros(self.N_boxes)
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in bs_transport.Flux.get_all_to(
             None, fluxes) if variable in flux.variables]
 
+        units = []
         for flux in variable_fluxes:
-            src_box = flux.source_box
-            src_box_conetxt = self.get_box_context(src_box)
-            variable_sink = flux(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(variable_sink)
+            src_box_conetxt = self.get_box_context(flux.source_box)
+            flux_rate = flux(time, src_box_context).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            units.append(flux_rate.units)
+            s[flux.source_box.id] += flux_rate.magnitude
 
-            if only_magnitude:
-                s[src_box.id] += variable_sink.magnitude
-            else:
-                s[src_box.id] += variable_sink
-        return s
+        units_set = set(units)
+        if len(units_set) == 1:
+            s_units = units_set.pop()
+        elif len(units_set) == 0:
+            s_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return s * s_units
 
-    def get_variable_flux_source_1Darray(self, variable, time, 
-            fluxes=None, only_magnitude=False, numpy_array=False):
+    def get_variable_flux_source_1Darray(self, variable, time, fluxes=None):
         """Return variable sources due to fluxes from outside the system.
 
         The variable sources for every box due to fluxes from outside the 
@@ -786,40 +659,33 @@ class BoxModelSystem:
             fluxes (list of Flow): List of the fluxes which should be 
                 considered. Default value is None. If fluxes==None, all 
                 fluxes of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            q = np.zeros(self.N_boxes)
-        else:
-            q = [0] * self.N_boxes
-
+        q = np.zeros(self.N_boxes)
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in bs_transport.Flux.get_all_from(
             None, fluxes) if variable in flux.variables]
 
+        units = []
         for flux in variable_fluxes:
-            trg_box = flux.target_box
-            trg_box_conetxt = self.get_box_context(trg_box)
-            variable_source = flux(time, trg_box_conetxt).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(variable_source)
+            trg_box_conetxt = self.get_box_context(flux.target_box)
+            flux_rate = flux(time, trg_box_conetxt).to_base_units()
+            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            units.append(flux_rate.units)
+            q[flux.source_box.id] += flux_rate.magnitude
 
-            if only_magnitude:
-                q[src_box.id] += variable_source.magnitude
-            else:
-                q[src_box.id] += variable_source
-        return q
+        units_set = set(units)
+        if len(units_set) == 1:
+            q_units = units_set.pop()
+        elif len(units_set) == 0:
+            q_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return q * q_units
 
     # PROCESS
 
-    def get_variable_process_sink_1Darray(self, variable, time, 
-            processes=None, only_magnitude=False, numpy_array=False):
+    def get_variable_process_sink_1Darray(self, variable, time, processes=None):
         """Return variable sinks due to processes.
 
         The variable sources for every box due to processes is returned 
@@ -833,40 +699,35 @@ class BoxModelSystem:
             processes (list of Process): List of the processes which should 
                 be considered. Default value is None. If processes==None, all 
                 processes of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            s = np.zeros(self.N_boxes)
-        else:
-            s = [0] * self.N_boxes
-        
+        s = np.zeros(self.N_boxes)
         processes = processes or self.processes
         variable_processes = [p for p in processes if variable in p.variables]
         
+        units = []
         for process in variable_processes:
             box_context = self.get_box_context(process.box)
             process_rate = process(time, box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(process_rate)
+            bs_dim_val.dimensionality_check_mass_per_time_err(process_rate)
+            units.append(process_rate.units)
 
             # If process rate is greater than zero it is not a sink!
             if process_rate.magnitude >= 0:
                 continue 
+            s[process.box.id] += process_rate.magnitude
 
-            if only_magnitude:
-                s[process.box.id] += process_rate.magnitude
-            else:
-                s[process.box.id] += process_rate
-        return s
+        units_set = set(units)
+        if len(units_set) == 1:
+            s_units = units_set.pop()
+        elif len(units_set) == 0:
+            s_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return s * s_units
 
     def get_variable_process_source_1Darray(self, variable, time, 
-            processes=None, only_magnitude=False, numpy_array=False):
+            processes=None):
         """ Returns the magnitude of the variable sources [kg] due to processes.
 
         The sources of variable due to processes is returned as a 1D numpy array.
@@ -879,42 +740,36 @@ class BoxModelSystem:
             processes (list of Process): List of the processes which should 
                 be considered. Default value is None. If processes==None, all 
                 processes of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
-        if numpy_array:
-            only_magnitude = True
-            q = np.zeros(self.N_boxes)
-        else:
-            q = [0] * self.N_boxes
-        
+        q = np.zeros(self.N_boxes)
         processes = processes or self.processes
         variable_processes = [p for p in processes if variable in p.variables]
         
+        units = []
         for process in variable_processes:
             box_context = self.get_box_context(process.box)
             process_rate = process(time, box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_transport_err(process_rate)
+            bs_dim_val.dimensionality_check_mass_per_time_err(process_rate)
+            units.append(process_rate.units)
 
-            # If process rate is greater than zero it is not a sink!
+            # If process rate is smaller than zero it is not a source!
             if process_rate.magnitude <= 0:
                 continue 
+            q[process.box.id] += process_rate.magnitude
 
-            if only_magnitude:
-                q[process.box.id] += process_rate.magnitude
-            else:
-                q[process.box.id] += process_rate
-        return q
+        units_set = set(units)
+        if len(units_set) == 1:
+            q_units = units_set.pop()
+        elif len(units_set) == 0:
+            q_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return q * q_units
 
     # REACTION
 
-    def get_reaction_rate_3Darray(self, time, 
-            reactions=None, only_magnitude=False, numpy_array=False):
+    def get_reaction_rate_3Darray(self, time, reactions=None): 
         """Return all reaction rates for all variables and boxes as a 3D list.
 
         The primary axis are the boxes. On the secondary axis are the reactions and on the third
@@ -930,51 +785,34 @@ class BoxModelSystem:
             reactions (list of Reaction): List of the reactions which should 
                 be considered. Default value is None. If reactions==None, all 
                 reactions of the system are considered.
-            only_magnitude (Boolean): Defines whether Quantities or floats 
-                are returned from this function. 
-            numpy_array (Boolean): Defines whether a list or a numpy array 
-                is returned. If set to True only the magnitude (in base units) 
-                of the quantities are returned. Therefore if numpy_array is 
-                set to True, only_magnitude is automatically set to True too.
 
         """
         # Initialize cube (minimal lenght of the axis of reactions is one)
         N_reactions = max(1, max([len(box.reactions)
                                   for box in self.box_list]))
-        if numpy_array:
-            only_magnitude = True
-            C = np.zeros([self.N_boxes, N_reactions, self.N_variables])
-        else:
-            C = [[[0 for col in range(self.N_variables)]
-                 for row in range(N_reactions)] 
-                 for depth in range(self.N_boxes)]
-
+        C = np.zeros([self.N_boxes, N_reactions, self.N_variables])
+        
+        units = []
         for box_name, box in self.boxes.items():
             for i_reaction, reaction in enumerate(box.reactions):
                 for variable, coeff in \
                         reaction.variable_reaction_coefficients.items():
                     rate = reaction(time, self.get_box_context(box), variable) 
+                    rate = rate.to_base_units()
+                    bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                    units.append(rate.units)
+                    C[box.id, i_reaction, variable.id] = rate.magnitude
 
-                    if only_magnitude:
-                        if numpy_array:
-                            C[box.id, i_reaction, variable.id] = rate.magnitude
-                        else:
-                            C[box.id][i_reaction][variable.id] = rate.magnitude
-                    else:
-                            C[box.id][i_reaction][variable.id] = rate
-        return C
+        units_set = set(units)
+        if len(units_set) == 1:
+            C_units = units_set.pop()
+        elif len(units_set) == 0:
+            C_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return C * C_units
 
-    # 2Darray methods
 
-    get_all_variable_flow_sink_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_flow_sink_1Darray)
-    get_all_variable_flow_source_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_flow_source_1Darray)
-    get_all_variable_flux_sink_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_flux_sink_1Darray)
-    get_all_variable_flux_source_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_flux_source_1Darray)
-    get_all_variable_process_sink_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_process_sink_1Darray)
-    get_all_variable_process_source_2Darray = bs_utils._1Darray_to_2Darray_method(
-        get_variable_process_source_1Darray)
+
+
+

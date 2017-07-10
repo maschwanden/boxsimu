@@ -39,23 +39,16 @@ class BoxModelSystem1Test(TestCase):
     """ Tests the boxsimu framework using a simple box model described in the 
     book Modelling Methods for Marine Science.
     """
-    def __init__(self, *args, **kwargs):
-        # self.system = boxmodelsystem1.init_system(ur)
-        # self.solver = Solver(self.system)
-        # self.uo.id = self.system.boxes.upper_ocean.id 
-        # self.do.id = self.system.boxes.deep_ocean.id
-
-        super(BoxModelSystem1Test, self).__init__(*args, **kwargs)
 
     def setUp(self, *args, **kwargs):
         self.system = boxmodelsystem1.init_system(ur)
-        # self.solver = Solver(self.system)
+        self.solver = Solver(self.system)
         self.uo = self.system.boxes.upper_ocean
         self.do = self.system.boxes.deep_ocean
 
     def tearDown(self, *args, **kwargs):
        del(self.system)
-       # del(self.solver)
+       del(self.solver)
        del(self.uo)
        del(self.do)
 
@@ -163,58 +156,39 @@ class BoxModelSystem1Test(TestCase):
     # Fluid and Variable Mass/Concentration Vectors/Matrices
     #####################################################
 
-    def test_fluid_mass_1Dlist_1Darray(self):
+    def test_fluid_mass_1Darray(self):
         m = self.system.get_fluid_mass_1Darray()
         self.assertEqual(m[self.uo.id], 3e16*1020*ur.kg)
         self.assertEqual(m[self.do.id], 1e18*1030*ur.kg)
 
-    def test_variable_mass_1Dlist_1Darray(self):
+    def test_variable_mass_1Darray(self):
         po4 = self.system.variables['po4']
 
         m = self.system.get_variable_mass_1Darray(po4)
         self.assertEqual(m[self.uo.id], 0*ur.kg)
         self.assertEqual(m[self.do.id], 0*ur.kg)
 
-        m = self.system.get_variable_mass_1Darray(po4, numpy_array=True)
-        self.assertEqual(m[self.uo.id], 0)
-        self.assertEqual(m[self.do.id], 0)
-
-    def test_variable_concentration_1Dlist_1Darray(self):
+    def test_variable_concentration_1Darray(self):
         po4 = self.system.variables['po4']
 
         c = self.system.get_variable_concentration_1Darray(po4)
-        self.assertEqual(c[self.uo.id], 0)
-        self.assertEqual(c[self.do.id], 0)
-
-        c = self.system.get_variable_concentration_1Darray(po4, 
-                numpy_array=True)
-        self.assertEqual(c[self.uo.id], 0)
-        self.assertEqual(c[self.do.id], 0)
+        self.assertEqual(c[self.uo.id], 0 * ur.dimensionless)
+        self.assertEqual(c[self.do.id], 0 * ur.dimensionless)
 
     #####################################################
     # Mass Flow Vectors/Matrices
     #####################################################
 
-    def test_fluid_mass_flow_2Dlist_2Darray(self):
+    def test_fluid_mass_internal_flow_2Darray(self):
         A = self.system.get_fluid_mass_internal_flow_2Darray(0*ur.second, 
                 self.system.flows)
         # Check that diagonal elements are zero
         for i in range(self.system.N_boxes):
-            self.assertEqual(A[i][i], 0)
+            self.assertEqual(A[i][i], 0 * ur.kg/ur.second)
         # Check that the other values are set correctly
         uo_do_exchange_rate = (6e17*ur.kg/ur.year).to_base_units()
         self.assertEqual(A[self.uo.id][self.do.id], uo_do_exchange_rate)
         self.assertEqual(A[self.do.id][self.uo.id], uo_do_exchange_rate)
-
-        A = self.system.get_fluid_mass_internal_flow_2Darray(0*ur.second, 
-                self.system.flows, numpy_array=True)
-        # Check that diagonal elements are zero
-        for i in range(self.system.N_boxes):
-            self.assertEqual(A[i,i], 0)
-        # Check that the other values are set correctly
-        uo_do_exchange_rate = (6e17*ur.kg/ur.year).to_base_units().magnitude
-        self.assertEqual(A[self.uo.id, self.do.id], uo_do_exchange_rate)
-        self.assertEqual(A[self.do.id, self.uo.id], uo_do_exchange_rate)
 
     def test_fluid_mass_flow_sink_1Darray(self):
         s = self.system.get_fluid_mass_flow_sink_1Darray(0*ur.second, 
@@ -222,14 +196,7 @@ class BoxModelSystem1Test(TestCase):
         # Upper Ocean Sink: Due to evaporation (3e16)
         evaporation_rate = (3e16*ur.kg/ur.year).to_base_units()
         self.assertEqual(s[self.uo.id], evaporation_rate)
-        self.assertEqual(s[self.do.id], 0)
-
-        s = self.system.get_fluid_mass_flow_sink_1Darray(0*ur.second, 
-                self.system.flows, numpy_array=True)
-        # Upper Ocean Sink: Due to evaporation (3e16)
-        evaporation_rate = (3e16*ur.kg/ur.year).to_base_units().magnitude
-        self.assertEqual(s[self.uo.id], evaporation_rate)
-        self.assertEqual(s[self.do.id], 0)
+        self.assertEqual(s[self.do.id], 0 * ur.kg/ur.second)
 
     def test_fluid_mass_flow_source_1Darray(self):
         q = self.system.get_fluid_mass_flow_source_1Darray(0*ur.second, 
@@ -237,14 +204,8 @@ class BoxModelSystem1Test(TestCase):
         # Upper Ocean Source: Due to river discharge (3e16)
         river_discharge_rate = (3e16*ur.kg/ur.year).to_base_units()
         self.assertEqual(q[self.uo.id], river_discharge_rate)
-        self.assertEqual(q[self.do.id], 0)
+        self.assertEqual(q[self.do.id], 0 * ur.kg/ur.second)
 
-        q = self.system.get_fluid_mass_flow_source_1Darray(0*ur.second, 
-                self.system.flows, numpy_array=True)
-        # Upper Ocean Source: Due to river discharge (3e16)
-        river_discharge_rate = (3e16*ur.kg/ur.year).to_base_units().magnitude
-        self.assertEqual(q[self.uo.id], river_discharge_rate)
-        self.assertEqual(q[self.do.id], 0)
 
     #####################################################
     # Variable Sink/Source Vectors
@@ -258,26 +219,17 @@ class BoxModelSystem1Test(TestCase):
 
         # Check that diagonal elements are zero
         for i in range(self.system.N_boxes):
-            self.assertEqual(A[i][i], 0)
-        self.assertEqual(A[self.uo.id][self.do.id], 0*ur.kg/ur.year)
-        self.assertEqual(A[self.do.id][self.uo.id], 0*ur.kg/ur.year)
-
-        A = self.system.get_variable_internal_flow_2Darray(var, 0*ur.second, 
-                f_flow, numpy_array=True)
-
-        # Check that diagonal elements are zero
-        for i in range(self.system.N_boxes):
-            self.assertEqual(A[i,i], 0)
-        self.assertEqual(A[self.uo.id, self.do.id], 0)
-        self.assertEqual(A[self.do.id, self.uo.id], 0)
+            self.assertEqual(A[i][i], 0 * ur.kg/ur.year)
+        self.assertEqual(A[self.uo.id][self.do.id], 0 * ur.kg/ur.year)
+        self.assertEqual(A[self.do.id][self.uo.id], 0 * ur.kg/ur.year)
 
         #########
         # Alternative Test with non-zero concentrations in the boxes:
         uo = self.system.boxes.upper_ocean 
         do = self.system.boxes.deep_ocean 
 
-        self.system.boxes.upper_ocean.variables.po4.mass = 3.06e11*ur.kg
-        self.system.boxes.deep_ocean.variables.po4.mass = 1.03e14*ur.kg
+        uo.variables.po4.mass = 3.06e11*ur.kg
+        do.variables.po4.mass = 1.03e14*ur.kg
         
         var = self.system.variables['po4']
         f_flow = np.ones(self.system.N_boxes)
@@ -286,7 +238,7 @@ class BoxModelSystem1Test(TestCase):
 
         # Check that diagonal elements are zero
         for i in range(self.system.N_boxes):
-            self.assertEqual(A[i][i], 0)
+            self.assertEqual(A[i][i], 0 * ur.kg/ur.second)
 
         # Mass Flow from upper_to_deep ocean: 
         uo_do_exchange_rate = (6e17*ur.kg/ur.year).to_base_units()
@@ -298,14 +250,12 @@ class BoxModelSystem1Test(TestCase):
         self.assertAlmostEqual(A[uo.id][do.id].magnitude, 1e-8*uo_do_exchange_rate.magnitude, places=2)
         self.assertEqual(A[uo.id][do.id].units, (1e-8*uo_do_exchange_rate).units)
 
-
         # Mass deep_ocean: 1e18*1030kg = 1.03e21
         # PO4 mass deep_ocean: 1.03e14kg
         # PO4 concentration deep_ocean: 1.03e14 / 1.03e21 = 1e-7
         # Transported PO4 from upper to deep ocean: uo_do_exchange_rate * 1e-7
         self.assertAlmostEqual(A[do.id][uo.id].magnitude, (1e-7*uo_do_exchange_rate).magnitude, places=2)
         self.assertEqual(A[do.id][uo.id].units, (1e-7*uo_do_exchange_rate).units)
-
 
     def test_variable_flow_sink_1Darray(self):
         var = self.system.variables['po4']
@@ -314,79 +264,48 @@ class BoxModelSystem1Test(TestCase):
         self.assertEqual(s[self.uo.id], 0*ur.kg/ur.second)
         self.assertEqual(s[self.do.id], 0*ur.kg/ur.second)
 
-    def test_variable_flow_sink_2Darray(self):
-        var = self.system.variables['po4']
-
-        f_flow = np.ones(self.system.N_boxes)
-        S = self.system.get_all_variable_flow_sink_2Darray(0*ur.second, f_flow)
-        self.assertEqual(S[self.uo.id, 0], 0)
-        self.assertEqual(S[self.do.id, 0], 0)
-
     def test_variable_flow_source_1Darray(self):
         var = self.system.variables['po4']
         q = self.system.get_variable_flow_source_1Darray(var, 0*ur.second)
         river_discharge_rate = (3e16*ur.kg/ur.year).to_base_units()
         # Upper Ocean Source: 3e16 * 4.6455e-8 = 1393650000.0
         self.assertAlmostEqual(q[self.uo.id], river_discharge_rate*4.6455e-8)
-        self.assertEqual(q[self.do.id], 0)
-
-    def test_variable_flow_source_2Darray(self):
-        Q = self.system.get_all_variable_flow_source_2Darray(0*ur.second)
-        river_discharge_rate = (3e16*ur.kg/ur.year).to_base_units().magnitude
-        # Upper Ocean Source: river_discharge_rate * 4.6455e-8
-        self.assertAlmostEqual(Q[self.uo.id, 0], river_discharge_rate*4.6455e-8)
-        self.assertEqual(Q[self.do.id, 0], 0)
+        self.assertEqual(q[self.do.id], 0 * ur.kg/ur.second)
 
     def test_variable_process_sink_1Darray(self):
         var = self.system.variables['po4']
         s = self.system.get_variable_process_sink_1Darray(var, 1*ur.second)
-        self.assertListEqual(s, [0, 0])
-
-    def test_variable_process_sink_2Darray(self):
-        S = self.system.get_all_variable_process_sink_2Darray(0*ur.second)
-        self.assertEqual(S[self.uo.id, 0], 0)
-        self.assertEqual(S[self.do.id, 0], 0)
+        self.assertEqual(s[self.uo.id], 0 * ur.kg/ur.second)
+        self.assertEqual(s[self.do.id], 0 * ur.kg/ur.second)
 
     def test_variable_process_source_1Darray(self):
         var = self.system.variables['po4']
         q = self.system.get_variable_process_source_1Darray(var, 0*ur.second)
-        self.assertListEqual(q, [0, 0])
-
-    def test_variable_process_source_2Darray(self):
-        Q = self.system.get_all_variable_process_source_2Darray(0*ur.second)
-        self.assertEqual(Q[self.uo.id, 0], 0)
-        self.assertEqual(Q[self.do.id, 0], 0)
+        self.assertEqual(q[self.uo.id], 0 * ur.kg/ur.second)
+        self.assertEqual(q[self.do.id], 0 * ur.kg/ur.second)
 
     def test_variable_internal_flux_2Darray(self):
         var = self.system.variables['po4']
         A = self.system.get_variable_internal_flux_2Darray(var, 0*ur.second)
-        self.assertEqual(A[self.uo.id][self.do.id], 0)
-        self.assertEqual(A[self.do.id][self.uo.id], 0)
+        self.assertEqual(A[self.uo.id][self.do.id], 0 * ur.kg/ur.second)
+        self.assertEqual(A[self.do.id][self.uo.id], 0 * ur.kg/ur.second)
 
     def test_variable_flux_sink_1Darray(self):
         var = self.system.variables['po4']
         s = self.system.get_variable_flux_sink_1Darray(var, 1*ur.second)
-        self.assertListEqual(s, [0, 0])
-
-    def test_variable_flux_sink_2Darray(self):
-        S = self.system.get_all_variable_flux_sink_2Darray(0*ur.second)
-        self.assertEqual(S[self.uo.id, 0], 0)
-        self.assertEqual(S[self.do.id, 0], 0)
+        self.assertEqual(s[self.uo.id], 0 * ur.kg/ur.second)
+        self.assertEqual(s[self.do.id], 0 * ur.kg/ur.second)
 
     def test_variable_flux_source_1Darray(self):
         var = self.system.variables['po4']
         q = self.system.get_variable_flux_source_1Darray(var, 0*ur.second)
-        self.assertListEqual(q, [0, 0])
-
-    def test_variable_flux_source_2Darray(self):
-        Q = self.system.get_all_variable_flux_source_2Darray(0*ur.second)
-        self.assertEqual(Q[self.uo.id, 0], 0)
-        self.assertEqual(Q[self.do.id, 0], 0)
+        self.assertEqual(q[self.uo.id], 0 * ur.kg/ur.second)
+        self.assertEqual(q[self.do.id], 0 * ur.kg/ur.second)
 
     def test_reaction_rate_cube(self):
         rr_cube = self.system.get_reaction_rate_3Darray(0*ur.second)
-        self.assertEqual(rr_cube[self.uo.id][0][0], 0)
-        self.assertEqual(rr_cube[self.do.id][0][0], 0)
+        self.assertEqual(rr_cube[self.uo.id][0][0], 0 * ur.kg/ur.second)
+        self.assertEqual(rr_cube[self.do.id][0][0], 0 * ur.kg/ur.second)
 
 if __name__ == "__main__": 
     unittest.main()
