@@ -36,8 +36,10 @@ from boxsimu.simulations import boxmodelsystem1
 
 
 class BoxModelSystem1Test(TestCase):
-    """ Tests the boxsimu framework using a simple box model described in the 
-    book Modelling Methods for Marine Science.
+    """Test boxsimu framework using a simple box model.
+    
+    The model tested herein is described in the 
+    book "Modelling Methods for Marine Science".
     """
 
     def setUp(self, *args, **kwargs):
@@ -57,15 +59,21 @@ class BoxModelSystem1Test(TestCase):
     #####################################################
     
     def test_mass(self):
-        self.assertEqual(self.system.boxes.upper_ocean.mass, 3e16*1020*ur.kg)
-        self.assertEqual(self.system.boxes.deep_ocean.mass, 1e18*1030*ur.kg)
+        self.assertEqual(self.system.boxes.upper_ocean.mass, 
+                3e16*1020*ur.kg)
+        self.assertEqual(self.system.boxes.deep_ocean.mass, 
+                1e18*1030*ur.kg)
 
     def test_volume(self):
-        upper_ocean_context = self.system.get_box_context(self.system.boxes.upper_ocean)
-        deep_ocean_context = self.system.get_box_context(self.system.boxes.deep_ocean)
+        upper_ocean_context = self.system.get_box_context(
+                self.system.boxes.upper_ocean)
+        deep_ocean_context = self.system.get_box_context(
+                self.system.boxes.deep_ocean)
 
-        self.assertEqual(self.system.boxes.upper_ocean.get_volume(upper_ocean_context).magnitude, 3e16*1020/1000.0)
-        self.assertEqual(self.system.boxes.deep_ocean.get_volume(upper_ocean_context).magnitude, 1e18*1030/1000.0)
+        self.assertEqual(self.system.boxes.upper_ocean.get_volume(
+            upper_ocean_context), 3e16*1020/1000.0 * ur.meter**3)
+        self.assertEqual(self.system.boxes.deep_ocean.get_volume(
+            upper_ocean_context), 1e18*1030/1000.0 * ur.meter**3)
 
     def test_concentration(self):
         pass
@@ -97,21 +105,29 @@ class BoxModelSystem1Test(TestCase):
         deep_ocean_context = self.system.get_box_context(deep_ocean)
         
         # Test accessability of the condition attributes
-        self.assertEqual(global_context.T.magnitude, 111)
-        self.assertEqual(upper_ocean_context.T.magnitude, 333)
-        self.assertEqual(deep_ocean_context.T.magnitude, 222)
+        self.assertEqual(global_context.T.magnitude, 111 * ur.kelvin)
+        self.assertEqual(upper_ocean_context.T.magnitude, 333 * ur.kelvin)
+        self.assertEqual(deep_ocean_context.T.magnitude, 222 * ur.kelvin)
 
         # Test the accessability of the condition attributes of other boxes:
-        self.assertEqual(global_context.upper_ocean.condition.T.magnitude, 333)
-        self.assertEqual(global_context.deep_ocean.condition.T.magnitude, 222)
+        self.assertEqual(global_context.upper_ocean.condition.T, 
+                333 * ur.kelvin)
+        self.assertEqual(global_context.deep_ocean.condition.T.magnitude, 
+                222 * ur.kelvin)
 
-        self.assertEqual(upper_ocean_context.global_condition.T.magnitude, 111)
-        self.assertEqual(upper_ocean_context.upper_ocean.condition.T.magnitude, 333)
-        self.assertEqual(upper_ocean_context.deep_ocean.condition.T.magnitude, 222)
+        self.assertEqual(upper_ocean_context.global_condition.T.magnitude, 
+                111 * ur.kelvin)
+        self.assertEqual(upper_ocean_context.upper_ocean.condition.T.magnitude, 
+                333 * ur.kelvin)
+        self.assertEqual(upper_ocean_context.deep_ocean.condition.T.magnitude, 
+                222 * ur.kelvin)
 
-        self.assertEqual(deep_ocean_context.global_condition.T.magnitude, 111)
-        self.assertEqual(deep_ocean_context.upper_ocean.condition.T.magnitude, 333)
-        self.assertEqual(deep_ocean_context.deep_ocean.condition.T.magnitude, 222)
+        self.assertEqual(deep_ocean_context.global_condition.T.magnitude, 
+                111 * ur.kelvin)
+        self.assertEqual(deep_ocean_context.upper_ocean.condition.T.magnitude, 
+                333 * ur.kelvin)
+        self.assertEqual(deep_ocean_context.deep_ocean.condition.T.magnitude, 
+                222 * ur.kelvin)
 
     def test_context_evaluation_lambda_func(self):
         upper_ocean = self.system.boxes.upper_ocean
@@ -126,7 +142,8 @@ class BoxModelSystem1Test(TestCase):
         self.assertEqual(lambda1(0*ur.second, upper_ocean_context), 3)
         self.assertEqual(lambda1(0*ur.second, deep_ocean_context), 2)
 
-        lambda2 = lambda t, c: t / ur.second + (c.T / (111*ur.kelvin)) + c.upper_ocean.condition.T / (111*ur.kelvin) 
+        lambda2 = lambda t, c: (t / ur.second + (c.T / (111*ur.kelvin)) +
+                c.upper_ocean.condition.T / (111*ur.kelvin))
         self.assertEqual(lambda2(0*ur.second, global_context), 4)
         self.assertEqual(lambda2(0*ur.second, upper_ocean_context), 6)
         self.assertEqual(lambda2(0*ur.second, deep_ocean_context), 5)
@@ -143,11 +160,13 @@ class BoxModelSystem1Test(TestCase):
         upper_ocean_context = self.system.get_box_context(upper_ocean)
         deep_ocean_context = self.system.get_box_context(deep_ocean)
 
-        lambda3 = lambda t, c: t / ur.second + (c.T / (111*ur.kelvin)) + c.upper_ocean.condition.T / (111*ur.kelvin) + (c.po4/ur.kg)**2
+        lambda3 = lambda t, c: (t / ur.second + (c.T / (111*ur.kelvin)) + 
+                c.upper_ocean.condition.T / (111*ur.kelvin) + (c.po4/ur.kg)**2)
         self.assertEqual(lambda3(100*ur.second, upper_ocean_context), 131)
         self.assertEqual(lambda3(100*ur.second, deep_ocean_context), 205)
 
-        lambda4 = lambda t, c: (c.po4/ur.kg) / (c.upper_ocean.variables.po4/ur.kg)
+        lambda4 = lambda t, c: ((c.po4/ur.kg) / 
+                (c.upper_ocean.variables.po4/ur.kg))
         self.assertEqual(lambda4(0*ur.second, upper_ocean_context), 1)
         self.assertEqual(lambda4(0*ur.second, deep_ocean_context), 2)
 
@@ -247,15 +266,19 @@ class BoxModelSystem1Test(TestCase):
         # PO4 mass upper_ocean: 3.06e11kg
         # PO4 concentration upper_ocean: 3.06e11 / 3.06e19 = 1e-8
         # Transported PO4 from upper to deep ocean: uo_do_exchange_rate * 1e-8
-        self.assertAlmostEqual(A[uo.id][do.id].magnitude, 1e-8*uo_do_exchange_rate.magnitude, places=2)
-        self.assertEqual(A[uo.id][do.id].units, (1e-8*uo_do_exchange_rate).units)
+        self.assertAlmostEqual(A[uo.id][do.id].magnitude, 
+                1e-8*uo_do_exchange_rate.magnitude, places=2)
+        self.assertEqual(A[uo.id][do.id].units, 
+                (1e-8*uo_do_exchange_rate).units)
 
         # Mass deep_ocean: 1e18*1030kg = 1.03e21
         # PO4 mass deep_ocean: 1.03e14kg
         # PO4 concentration deep_ocean: 1.03e14 / 1.03e21 = 1e-7
         # Transported PO4 from upper to deep ocean: uo_do_exchange_rate * 1e-7
-        self.assertAlmostEqual(A[do.id][uo.id].magnitude, (1e-7*uo_do_exchange_rate).magnitude, places=2)
-        self.assertEqual(A[do.id][uo.id].units, (1e-7*uo_do_exchange_rate).units)
+        self.assertAlmostEqual(A[do.id][uo.id].magnitude, 
+                (1e-7*uo_do_exchange_rate).magnitude, places=2)
+        self.assertEqual(A[do.id][uo.id].units, 
+                (1e-7*uo_do_exchange_rate).units)
 
     def test_variable_flow_sink_1Darray(self):
         var = self.system.variables['po4']
