@@ -56,7 +56,7 @@ from boxsimu.solver import Solver
 from boxsimu import utils
 
 
-def init_system(ur=None):
+def get_system(ur):
 
     #############################
     # FLUIDS
@@ -84,7 +84,7 @@ def init_system(ur=None):
     po4_sink_upper_ocean = Process(
         name='PO4 sink to the continental shelf',
         variable=po4,
-        rate=lambda t, c: -c.upper_ocean_var.po4 * 0.01,
+        rate=lambda t, c: -c.upper_ocean.variables.po4 * 0.01 / ur.year,
     )
 
     no3_release_upper_ocean = Process(
@@ -96,26 +96,23 @@ def init_system(ur=None):
     no3_sink_upper_ocean = Process(
         name='NO3 sink to the continental shelf',
         variable=no3,
-        rate=lambda t, c: -c.upper_ocean_var.no3 * 0.01,
+        rate=lambda t, c: -c.upper_ocean.variables.no3 * 0.01 / ur.year,
     )
 
     #############################
     # REACTIONS
     #############################
 
-    global_photosynthesis_rate = 115e9 * ur.metric_ton / ur.year
-    ratiox = global_photosynthesis_rate/(114.5*ur.kg)
-
     reaction_photosynthesis = Reaction(
         name = 'Photosynthesis',
-        variable_reaction_coefficients={po4: -1, no3: -7.225, phyto: 114.5},
-        rate=lambda t, c: min(c.po4, c.no3/7.225) * 0.8 / ur.year
+        variable_reaction_coefficients={po4: -1, no3: -7, phyto: 114},
+        rate=lambda t, c: min(c.po4, c.no3/7) * 0.8 / ur.year
     )
 
     reaction_remineralization = Reaction(
         name = 'Remineralization',
-        variable_reaction_coefficients={po4: 1, no3: 7.225, phyto: -114.5},
-        rate=lambda t, c: c.phyto * 0.4 / ur.year
+        variable_reaction_coefficients={po4: 1, no3: 7, phyto: -114},
+        rate=lambda t, c: (c.phyto/114) * 0.4 / ur.year
     )
 
     #############################
@@ -126,7 +123,7 @@ def init_system(ur=None):
         name_long='Lake Box',
         fluid=seawater.q(1e16*ur.kg),
         condition=Condition(T=290*ur.kelvin, pH=7.0),
-        variables=[po4.q(3*ur.kg), no3.q(1*ur.kg), phyto.q(0.324*ur.kg)],
+        variables=[po4.q(1*ur.kg), no3.q(2*ur.kg), phyto.q(3*ur.kg)],
         reactions=[reaction_photosynthesis, reaction_remineralization],
     )
     upper_ocean = Box(
@@ -136,7 +133,7 @@ def init_system(ur=None):
         processes=[po4_release_upper_ocean, po4_sink_upper_ocean, 
                    no3_release_upper_ocean, no3_sink_upper_ocean],
         condition=Condition(T=280*ur.kelvin, pH=8.3),
-        variables=[po4.q(3.3123*ur.kg), no3.q(0.237*ur.kg), phyto.q(0.7429*ur.kg)],
+        variables=[po4.q(4*ur.kg), no3.q(5*ur.kg), phyto.q(6*ur.kg)],
         reactions=[reaction_photosynthesis, reaction_remineralization],
     )
     deep_ocean = Box(
@@ -144,15 +141,15 @@ def init_system(ur=None):
         name_long='Deep Ocean Box',
         fluid=seawater.q(1e21*ur.kg),
         condition=Condition(T=275*ur.kelvin, pH=8.1),
-        variables=[po4.q(3.492*ur.kg), no3.q(1.12437*ur.kg), phyto.q(4.324*ur.kg)],
+        variables=[po4.q(7*ur.kg), no3.q(8*ur.kg), phyto.q(9*ur.kg)],
         reactions=[reaction_remineralization],
     )
     sediment = Box(
         name='sediment',
         name_long='Sediment Box',
-        fluid=seawater.q(1e10*ur.kg),
+        fluid=sediment_material.q(1e10*ur.kg),
         condition=Condition(T=275*ur.kelvin, pH=7.7),
-        variables=[po4.q(2.3484*ur.kg), no3.q(9.23*ur.kg), phyto.q(2.824*ur.kg)],
+        variables=[po4.q(10*ur.kg), no3.q(11*ur.kg), phyto.q(12*ur.kg)],
     )
     
     #############################
@@ -228,13 +225,29 @@ def init_system(ur=None):
     #############################
     # FLUXES
     #############################
-    
+
+    desert_dust_po4_flux = Flux(
+        name='Desert Dust flux of PO4',
+        source_box=None,
+        target_box=upper_ocean,
+        variable=po4,
+        rate=lambda t, c: 1e5*ur.kg/ur.year,
+    ) 
+
+    desert_dust_no3_flux = Flux(
+        name='Desert Dust flux of NO3',
+        source_box=None,
+        target_box=upper_ocean,
+        variable=no3,
+        rate=lambda t, c: 2e4*ur.kg/ur.year,
+    ) 
+
     biological_pump = Flux(
         name='Biological Pump',
         source_box=upper_ocean,
         target_box=deep_ocean,
         variable=phyto,
-        rate=lambda t, c: c.upper_ocean_var.phyto * 0.1,
+        rate=lambda t, c: c.upper_ocean.variables.phyto * 0.1 / ur.year,
     )
 
     oc_burial = Flux(
@@ -242,20 +255,40 @@ def init_system(ur=None):
         source_box=deep_ocean,
         target_box=sediment,
         variable=phyto,
-        rate=lambda t, c: (c.upper_ocean_var.phyto * 0.1) * 0.1,
+        rate=lambda t, c: (c.upper_ocean.variables.phyto * 0.1) * 0.1  / ur.year,
+    )
+
+    oc_material_lithification = Flux(
+        name='Lithification of Sediment',
+        source_box=sediment,
+        target_box=None,
+        variable=phyto,
+        rate=lambda t, c: (c.sediment.variables.phyto) * 0.1  / ur.year,
     )
 
     #############################
     # SYSTEM
     #############################
 
-    system = BoxModelSystem('BoxModelSystem No. 2', 
-                          [lake, upper_ocean, deep_ocean, sediment], 
-                          flows=[flow_lake_evaporation, flow_lake_to_upper_ocean, flow_river_to_lake, 
-                                 flow_downwelling, flow_upwelling, flow_upper_ocean_evaporation, 
-                                 flow_deep_ocean_percolation, flow_deep_ocean_fount],
-                          fluxes=[biological_pump, oc_burial], 
-                          global_condition=Condition(T=288*ur.kelvin, pH=7.3),
+    bmsystem = BoxModelSystem('BoxModelSystem No. 2', 
+        boxes=[lake, upper_ocean, deep_ocean, sediment], 
+        flows=[
+            flow_lake_evaporation, 
+            flow_lake_to_upper_ocean, 
+            flow_river_to_lake, 
+            flow_downwelling, flow_upwelling, 
+            flow_upper_ocean_evaporation, 
+            flow_deep_ocean_percolation, 
+            flow_deep_ocean_fount, 
+        ],
+        fluxes=[
+            biological_pump, 
+            oc_burial,
+            desert_dust_po4_flux,
+            desert_dust_no3_flux,
+            oc_material_lithification,
+        ], 
+        global_condition=Condition(T=288*ur.kelvin, pH=7.3),
     )
-    return system
+    return bmsystem
 

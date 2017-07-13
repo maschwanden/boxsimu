@@ -31,7 +31,7 @@ from boxsimu import system
 from boxsimu import transport
 
 
-def init_system(ur=None):
+def get_system(ur):
     V1 = 3e16
     V2 = 1e18
     FR = 3e13

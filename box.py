@@ -65,10 +65,11 @@ class Box:
         if not fluid.quantified:
             raise bs_errors.FluidNotQuantifiedError('Fluid was not quantified!')
         self.fluid = fluid
-        self.condition = copy.deepcopy(
-            condition) if condition else bs_condition.Condition()
-        self.processes = copy.deepcopy(processes)
-        self.reactions = copy.deepcopy(reactions)
+        self.condition = condition if condition else bs_condition.Condition()
+        self.processes = processes
+        self.processes.sort()
+        self.reactions = reactions
+        self.reactions.sort()
         self.variables = AttrDict()
 
         for variable in variables:

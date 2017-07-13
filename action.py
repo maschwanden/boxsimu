@@ -17,6 +17,21 @@ class BaseAction:
 
     def __hash__(self):
         return hash(repr(self))
+        
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return False
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name > other.name
+        return false
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name < other.name
+        return false
 
     def __call__(self, *args, **kwargs):
         """Instances can be called like functions."""

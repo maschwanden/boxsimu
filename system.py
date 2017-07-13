@@ -90,10 +90,14 @@ class BoxModelSystem:
 
         self.box_names = list(self.boxes.keys())
         self.box_names.sort()
-        self.processes = [process for box_name, box in self.boxes.items()
-                          for process in box.processes]
-        self.reactions = [reaction for box_name, box in self.boxes.items()
-                          for reaction in box.reactions]
+        self.processes = list(set([process 
+            for box_name, box in self.boxes.items()
+            for process in box.processes]))
+        self.processes.sort()
+        self.reactions = list(set([reaction 
+            for box_name, box in self.boxes.items()
+            for reaction in box.reactions]))
+        self.reactions.sort()
 
         # Add every variables mentioned in a process, reaction, flow, flux or
         # box to a temporary list and add unique variables to all boxes even
@@ -301,7 +305,7 @@ class BoxModelSystem:
             if box.fluid.mass.magnitude == 0 or variable_mass.magnitude == 0:
                 concentration = 0 * self.pint_ur.dimensionless
             else:
-                concentration = (var.mass / box.fluid.mass).to_base_units()
+                concentration = (variable_mass / box.fluid.mass).to_base_units()
             bs_dim_val.dimensionality_check_dimless_err(concentration)
             units.append(concentration.units)
             c[box.id] = concentration.magnitude
@@ -434,6 +438,17 @@ class BoxModelSystem:
     # Variable Sink/Source Vectors/Matrices
     #####################################################
 
+    def _check_mass_rate_units(self, units):
+        """Check list of pint units if they are mass rates."""
+        units_set = set(units)
+        if len(units_set) == 1:
+            res_units = units_set.pop()
+        elif len(units_set) == 0:
+            res_units = self.pint_ur.kg / self.pint_ur.second
+        else:
+            raise DimensionalityError(units_set.pop(), units_set.pop())
+        return res_units
+
     # FLOW
 
     def get_variable_internal_flow_2Darray(self, variable, time, f_flow, 
@@ -478,13 +493,7 @@ class BoxModelSystem:
             A[flow.source_box.id, flow.target_box.id] += \
                     variable_flow_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            A_units = units_set.pop()
-        elif len(units_set) == 0:
-            A_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        A_units = self._check_mass_rate_units(units)
         return A * A_units
 
     def get_variable_flow_sink_1Darray( self, variable, time, f_flow, 
@@ -542,9 +551,11 @@ class BoxModelSystem:
         """
         q = np.zeros(self.N_boxes)
         flows = flows or self.flows
+        variable_flows = [f for f in flows 
+                if variable in f.concentrations.keys()]
 
         units = []
-        for flow in bs_transport.Flow.get_all_from(None, flows):
+        for flow in bs_transport.Flow.get_all_from(None, variable_flows):
             variable_flow_rate = (flow(time, self.get_global_context()) * 
                     flow.concentrations[variable]).to_base_units()
             bs_dim_val.dimensionality_check_mass_per_time_err(
@@ -552,13 +563,7 @@ class BoxModelSystem:
             units.append(variable_flow_rate.units)
             q[flow.target_box.id] += variable_flow_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            q_units = units_set.pop()
-        elif len(units_set) == 0:
-            q_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        q_units = self._check_mass_rate_units(units)
         return q * q_units
 
     # FLUX
@@ -585,7 +590,7 @@ class BoxModelSystem:
         A = np.zeros([self.N_boxes, self.N_boxes])
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in fluxes 
-                if variable in flux.variables]
+                if variable == flux.variable]
 
         units = []
         for flux in variable_fluxes:
@@ -598,13 +603,7 @@ class BoxModelSystem:
             units.append(flux_rate.units)
             A[flux.source_box.id, flux.target_box.id] += flux_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            A_units = units_set.pop()
-        elif len(units_set) == 0:
-            A_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        A_units = self._check_mass_rate_units(units)
         return A * A_units
 
     def get_variable_flux_sink_1Darray(self, variable, time, fluxes=None):
@@ -626,23 +625,17 @@ class BoxModelSystem:
         s = np.zeros(self.N_boxes)
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in bs_transport.Flux.get_all_to(
-            None, fluxes) if variable in flux.variables]
+            None, fluxes) if variable == flux.variable]
 
         units = []
         for flux in variable_fluxes:
-            src_box_conetxt = self.get_box_context(flux.source_box)
+            src_box_context = self.get_box_context(flux.source_box)
             flux_rate = flux(time, src_box_context).to_base_units()
             bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
             units.append(flux_rate.units)
             s[flux.source_box.id] += flux_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            s_units = units_set.pop()
-        elif len(units_set) == 0:
-            s_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        s_units = self._check_mass_rate_units(units)
         return s * s_units
 
     def get_variable_flux_source_1Darray(self, variable, time, fluxes=None):
@@ -664,7 +657,7 @@ class BoxModelSystem:
         q = np.zeros(self.N_boxes)
         fluxes = fluxes or self.fluxes
         variable_fluxes = [flux for flux in bs_transport.Flux.get_all_from(
-            None, fluxes) if variable in flux.variables]
+            None, fluxes) if variable == flux.variable]
 
         units = []
         for flux in variable_fluxes:
@@ -672,15 +665,9 @@ class BoxModelSystem:
             flux_rate = flux(time, trg_box_conetxt).to_base_units()
             bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
             units.append(flux_rate.units)
-            q[flux.source_box.id] += flux_rate.magnitude
+            q[flux.target_box.id] += flux_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            q_units = units_set.pop()
-        elif len(units_set) == 0:
-            q_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        q_units = self._check_mass_rate_units(units)
         return q * q_units
 
     # PROCESS
@@ -703,27 +690,27 @@ class BoxModelSystem:
         """
         s = np.zeros(self.N_boxes)
         processes = processes or self.processes
-        variable_processes = [p for p in processes if variable in p.variables]
+        variable_processes = [p for p in processes if variable == p.variable]
+        variable_process_names = [p.name for p in variable_processes]
         
         units = []
-        for process in variable_processes:
-            box_context = self.get_box_context(process.box)
-            process_rate = process(time, box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(process_rate)
-            units.append(process_rate.units)
+        for box_name, box in self.boxes.items():
+            box_context = self.get_box_context(box)
+            box_processes = [p for p in box.processes 
+                    if p.name in variable_process_names]
+            box_process_rates = [p(time, box_context).to_base_units() 
+                    for p in box_processes]
+            for rate in box_process_rates:
+                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                units.append(rate.units)
+            sink_rates = [-rate for rate in box_process_rates 
+                    if rate.magnitude < 0]
+            try:
+                s[box.id] += sum(sink_rates).magnitude
+            except AttributeError:
+                s[box.id] += sum(sink_rates)
 
-            # If process rate is greater than zero it is not a sink!
-            if process_rate.magnitude >= 0:
-                continue 
-            s[process.box.id] += process_rate.magnitude
-
-        units_set = set(units)
-        if len(units_set) == 1:
-            s_units = units_set.pop()
-        elif len(units_set) == 0:
-            s_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        s_units = self._check_mass_rate_units(units)
         return s * s_units
 
     def get_variable_process_source_1Darray(self, variable, time, 
@@ -744,30 +731,50 @@ class BoxModelSystem:
         """
         q = np.zeros(self.N_boxes)
         processes = processes or self.processes
-        variable_processes = [p for p in processes if variable in p.variables]
+        variable_processes = [p for p in processes if variable == p.variable]
+        variable_process_names = [p.name for p in variable_processes]
         
         units = []
-        for process in variable_processes:
-            box_context = self.get_box_context(process.box)
-            process_rate = process(time, box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(process_rate)
-            units.append(process_rate.units)
+        for box_name, box in self.boxes.items():
+            box_context = self.get_box_context(box)
+            box_processes = [p for p in box.processes 
+                    if p.name in variable_process_names]
+            box_process_rates = [p(time, box_context).to_base_units() 
+                    for p in box_processes]
+            for rate in box_process_rates:
+                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                units.append(rate.units)
+            source_rates = [rate for rate in box_process_rates 
+                    if rate.magnitude > 0]
+            try:
+                q[box.id] += sum(source_rates).magnitude
+            except AttributeError:
+                q[box.id] += sum(source_rates)
 
-            # If process rate is smaller than zero it is not a source!
-            if process_rate.magnitude <= 0:
-                continue 
-            q[process.box.id] += process_rate.magnitude
-
-        units_set = set(units)
-        if len(units_set) == 1:
-            q_units = units_set.pop()
-        elif len(units_set) == 0:
-            q_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        q_units = self._check_mass_rate_units(units)
         return q * q_units
 
     # REACTION
+
+    def get_reaction_rate_2Darray(self, time, reaction):
+        """Return reaction rates for all variables and boxes."""
+        A = np.zeros([self.N_boxes, self.N_variables])
+        
+        units = []
+        for box in self.box_list:
+            for variable_name, variable in self.variables.items():
+                if not reaction in box.reactions:
+                    A[box.id, variable.id] = 0 
+                    continue
+                rate = reaction(time, self.get_box_context(box), variable)
+                rate = rate.to_base_units()
+                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                units.append(rate.units)
+                A[box.id, variable.id] = rate.magnitude
+
+        A_units = self._check_mass_rate_units(units)
+        return A * A_units
+
 
     def get_reaction_rate_3Darray(self, time, reactions=None): 
         """Return all reaction rates for all variables and boxes as a 3D list.
@@ -776,8 +783,18 @@ class BoxModelSystem:
         axis are the variables. Therefore, for every Box there exists a 2D numpy array with all
         information of reactions rates for every variable.
         Axis 1: Box
-        Axis 2: Reactions
-        Axis 3: Variables
+        Axis 2: Variables
+        Axis 3: Reactions
+
+        Note: The first and the second axis are constant, that means that 
+        the same index of the first and second axis always point to the 
+        same box/variable. On the other hand, reactions are just filled in
+        in any order. That means that the same index of the third axis doesn't
+        show the reaction rates of the same reaction. If for example in one 
+        box there are four reactions: R1, R2, R3, R4. Then the third axis of 
+        this box will contain: [R1,R2,R3,R4]. For another box that only has
+        R3 the third axis will look: [R3,0,0,0]. Thus the third axis is filled
+        from 0.
 
         Args:
             time (pint.Quantity [T]): Time at which the fluxes shall be 
@@ -788,31 +805,18 @@ class BoxModelSystem:
 
         """
         # Initialize cube (minimal lenght of the axis of reactions is one)
-        N_reactions = max(1, max([len(box.reactions)
-                                  for box in self.box_list]))
-        C = np.zeros([self.N_boxes, N_reactions, self.N_variables])
-        
+        N_reactions = len(self.reactions)
+        C = np.zeros([N_reactions, self.N_boxes, self.N_variables])
+
         units = []
-        for box_name, box in self.boxes.items():
-            for i_reaction, reaction in enumerate(box.reactions):
-                for variable, coeff in \
-                        reaction.variable_reaction_coefficients.items():
-                    rate = reaction(time, self.get_box_context(box), variable) 
-                    rate = rate.to_base_units()
-                    bs_dim_val.dimensionality_check_mass_per_time_err(rate)
-                    units.append(rate.units)
-                    C[box.id, i_reaction, variable.id] = rate.magnitude
+        for i, reaction in enumerate(self.reactions):
+            reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
+            bs_dim_val.dimensionality_check_mass_per_time_err(reaction_2Darray)
+            units.append(reaction_2Darray.units)
+            C[i,:,:] = reaction_2Darray.magnitude 
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            C_units = units_set.pop()
-        elif len(units_set) == 0:
-            C_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
-        return C * C_units
-
-
+        C_units = self._check_mass_rate_units(units)
+        return np.moveaxis(C, 0, -1) * C_units
 
 
 

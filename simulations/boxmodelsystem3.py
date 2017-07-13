@@ -7,8 +7,8 @@ Created on Thu Jun 23 10:45:10 2016
 1 Box Model with 4 different Variables and 2 Reactions.
 Variables: A, B, C
 Reactions:
-    3A + 5B -> 2C
-    If Concentration(C) > Concentration_crit : C -> D
+    Reaction 1 : 3A + 5B -> 2C
+    Reaction 2 : If Concentration(C) > Concentration_crit : C -> D
 
 """
 
@@ -24,82 +24,90 @@ BOXSIMU_PATH = '/home/aschi/Documents/MyPrivateRepo/'
 if not BOXSIMU_PATH in sys.path:
     sys.path.append(BOXSIMU_PATH)
 
-from boxsimu import box
-from boxsimu import entities
-from boxsimu import condition
-from boxsimu import process
-from boxsimu import system
-from boxsimu import transport
+from boxsimu.entities import Fluid, Variable
+from boxsimu.box import Box
+from boxsimu.transport import  Flow, Flux
+from boxsimu.condition import Condition
+from boxsimu.system import BoxModelSystem 
+from boxsimu.process import Process, Reaction
+from boxsimu.solver import Solver
+from boxsimu import utils
 
 
-def init_system(ur=None):
+def get_system(ur):
+
     #############################
     # FLUIDS
     #############################
 
-    seawater = entities.Fluid('sea water', rho_expr=1000*ur.kg/ur.meter**3)
+    water = Fluid('water', rho_expr=1000*ur.kg/ur.meter**3)
     
     #############################
     # VARIABLES
     #############################
 
-    A = entities.Variable('A')
-    B = entities.Variable('B')
-    C = entities.Variable('C')
-    D = entities.Variable('D')
+    A = Variable('A')
+    B = Variable('B')
+    C = Variable('C')
+    D = Variable('D')
 
     #############################
     # REACTIONS
     #############################
-    reaction1_rate = lambda t, c: 1*ur.kg/ur.day
+
     reaction1 = Reaction(
-        name = 'Reaction A and B to C',
+        name = 'Reaction1',
         variable_reaction_coefficients={A: -3, B: -5, C: 2},
-        rate=reaction1_rate,
+        rate=lambda t, c: min(c.A/3, c.B/5) * 0.2 / ur.year
     )
 
-    def reaction2_rate(t, c):
-        if c.C > 10*ur.kg:
-            return 1*ur.kg
-        else:
-            return 0*ur.kg
+    def rr2(t, c):
+        """If Mass(C) > Mass_crit : C -> D."""
+        m_crit = 0.5 * ur.kg 
+        if c.C > m_crit:
+            return (c.C-m_crit) * 0.1 / ur.year
+        return 0 * ur.kg / ur.year
 
     reaction2 = Reaction(
-        name = 'Reaction C to D',
+        name = 'Reaction2',
         variable_reaction_coefficients={C: -1, D: 1},
-        rate=reaction2_rate,
+        rate=rr2,
     )
     
     #############################
     # BOXES
     #############################
 
-    box1 = box.Box(
+    box1 = Box(
         name='box1',
-        name_long='Box 1', 
-        fluid=seawater.q(1e6*ur.kg),
-        condition=condition.Condition(T=300*ur.kelvin),
-        variables=[A.q(20*ur.kg), B.q(50*ur.kg)],
+        name_long='Box 1',
+        fluid=water.q(1e5*ur.kg), 
+        condition=Condition(T=290*ur.kelvin),
+        variables=[A.q(3*ur.kg), B.q(3*ur.kg)],
+        reactions=[reaction1, reaction2],
     )
-    
+
     #############################
     # FLOWS
     #############################
 
-    inflow = transport.Flow(
+    inflow = Flow(
         name='Inflow', 
         source_box=None, 
         target_box=box1,
-        rate=1e3*ur.kg/ur.day,
+        rate=1e3*ur.kg/ur.year,
         tracer_transport=True,
-        concentrations={A: 2*ur.gram/ur.kg, B: 3*ur.gram/ur.kg},
+        concentrations={
+            A: 1 * ur.gram / ur.kg,
+            B: 2 * ur.gram / ur.kg,
+        }
     )
     
-    outflow = transport.Flow(
+    outflow = Flow(
         name='Outflow',
         source_box=box1, 
         target_box=None,
-        rate=1.02e3*ur.kg/ur.day, 
+        rate=1e3*ur.kg/ur.year, 
         tracer_transport=True,
     )
     
@@ -107,10 +115,13 @@ def init_system(ur=None):
     # SYSTEM
     #############################
 
-    bmsystem = system.BoxModelSystem('Reaction Testing System', 
-                          [box1, ], 
-                          flows=[inflow, outflow],
-                          global_condition=condition.Condition(T=299*ur.kelvin),
+    bmsystem = BoxModelSystem(
+            name='Test System', 
+            boxes=[box1],
+            flows=[inflow, outflow],
+            global_condition=Condition(T=295*ur.kelvin),
     )
     return bmsystem
+
+
 

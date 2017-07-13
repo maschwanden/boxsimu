@@ -197,10 +197,11 @@ class Flux(BaseTransport):
         self.name = name
         if source_box == target_box:
             raise ValueError('target_box and source_box must not be equal!')
-        if not (isinstance(source_box, bs_box.Box) and 
+
+        if not (isinstance(source_box, bs_box.Box) or 
                 isinstance(target_box, bs_box.Box)):
-            raise ValueError('The parameters source_box and target_box must be'
-                'instances of the class Box!')
+            raise ValueError('At least one of the two parameters source_box '
+                'and target_box must be an instance of the class Box!')
 
         self.variable = variable
 

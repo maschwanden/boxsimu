@@ -21,3 +21,8 @@ class VariableNotQuantifiedError(BoxSimuBaseException):
 class FluidNotQuantifiedError(BoxSimuBaseException):
     """Raise if Fluid is not quantified but should be."""
     pass
+
+
+class WrongUnitsDimensionalityError(BoxSimuBaseException):
+	"""Raise units have wrong dimensionalities."""
+	pass

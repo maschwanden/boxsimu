@@ -107,18 +107,19 @@ class Reaction(bs_action.BaseAction):
         """Return the reaction coefficient of variable."""
         if variable not in self.variables:
             raise ValueError('{} is not a Variable!'.format(variable))
-        for i, var in enumerate(self.variables):
-            if var == variable:
-                return self.variable_coeffs[i]
+        return self.variable_reaction_coefficients[variable]
 
     def get_rate_function_of_variable(self, variable):
         """Return a rate function with which a variable reacts."""
         coeff = self.get_coeff_of(variable)
 
+        rr = self.rate
+
         def _rate_func(t, c):
             rr = self.rate
             if callable(self.rate):
                 rr = self.rate(t, c)
+
             return rr * coeff
         return _rate_func
 

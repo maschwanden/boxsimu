@@ -17,6 +17,8 @@ from pint.errors import DimensionalityError
 from pint import UnitRegistry
 ur = UnitRegistry()
 
+from .errors import WrongUnitsDimensionalityError
+
 
 def dimensionality_check(quantity, *units):
     """Check if quantity is of the correct dimensionality.
@@ -55,12 +57,12 @@ def dimensionality_check_err(quantity, *units):
     dimensions = [u.dimensionality for u in units]
     if not dimensionality_check(quantity, *units):
         if len(units) > 1:
-            raise DimensionalityError('Invalid units {}: Must be given ' 
-                    'in one of the following dimensions: {}.'.format(
-                        quantity.dimensionality, dimensions))
+            raise WrongUnitsDimensionalityError('Invalid units {}: '
+                    'Must be given in one of the following dimensions: '
+                    '{}.'.format(quantity.dimensionality, dimensions))
         else:
-            raise DimensionalityError('Invalid units {}: Must be given in '
-                    'on of the following dimensions: {}'.format(
+            raise WrongUnitsDimensionalityError('Invalid units {}: Must '
+                    'be given in on of the following dimensions: {}'.format(
                         quantity.dimensionality, dimensions))
 
 
@@ -73,9 +75,11 @@ def dimensionality_check_density(quantity):
     """Check if quantity has dimensions of [M/L^3]."""
     return dimensionality_check(quantity, ur.kg / ur.meter**3)
 
+
 def dimensionality_check_time(quantity):
     """Check if quantity has dimensions of [T]."""
     return dimensionality_check(quantity, ur.second)
+
 
 def dimensionality_check_volume_per_time(quantity):
     """Check if quantity has dimensions of [L^3/T]."""
@@ -86,9 +90,11 @@ def dimensionality_check_mass_per_time(quantity):
     """Check if quantity has dimensions of [M/T]."""
     return dimensionality_check(quantity, ur.kg / ur.second)
 
+
 def dimensionality_check_dimless(quantity):
     """Check if quantity has dimensions of [1]."""
     return dimensionality_check(quantity, ur.kg / ur.kg)
+
 
 def dimensionality_check_mass_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [M]."""
@@ -99,17 +105,21 @@ def dimensionality_check_density_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [M/L^3]."""
     dimensionality_check_err(quantity, ur.kg / ur.meter**3)
 
+
 def dimensionality_check_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [T]."""
     dimensionality_check_err(quantity, ur.second)
+
 
 def dimensionality_check_volume_per_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [L^3/T]."""
     dimensionality_check_err(quantity, ur.meter**3 / ur.second)
 
+
 def dimensionality_check_mass_per_time_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [M/T]."""
     dimensionality_check_err(quantity, ur.kg / ur.second)
+
 
 def dimensionality_check_dimless_err(quantity):
     """Raise DimensionalityError if quantity has not dimensions [1]."""
