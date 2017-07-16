@@ -112,7 +112,7 @@ def get_system(ur):
     # SYSTEM
     #############################
 
-    bmsystem = system.BoxModelSystem('Test System', 
+    bmsystem = system.BoxModelSystem('Test System    123 ()!!! XD & cd/', 
                           [upper_ocean, deep_ocean], 
                           flows=[flow_downwelling, flow_upwelling, 
                                  flow_river_water, flow_upper_ocean_evaporation],

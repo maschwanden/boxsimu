@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 10:36:37 2016
+Created on Thu Jun 23 2016 10:36UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
@@ -9,6 +9,7 @@ Created on Thu Jun 23 10:36:37 2016
 import copy
 
 from . import action as bs_action
+from . import entities as bs_entities
 from . import errors as bs_errors
 
 
@@ -105,8 +106,10 @@ class Reaction(bs_action.BaseAction):
 
     def get_coeff_of(self, variable):
         """Return the reaction coefficient of variable."""
-        if variable not in self.variables:
+        if not isinstance(variable, bs_entities.Variable):
             raise ValueError('{} is not a Variable!'.format(variable))
+        if variable not in self.variables:
+            return 0
         return self.variable_reaction_coefficients[variable]
 
     def get_rate_function_of_variable(self, variable):

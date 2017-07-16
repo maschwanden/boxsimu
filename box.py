@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 10:23:46 2016
+Created on Thu Jun 23 2016 at 11:08UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
@@ -9,6 +9,7 @@ Box class that represents a box within a sinlge- or multibox-system.
 """
 
 import copy
+import random
 from keyword import iskeyword
 from attrdict import AttrDict
 
@@ -31,11 +32,11 @@ class Box:
         variables (list of Variable): Variables that are found within the box.
             The Variable instances must be quantified. That means they must
             be generated using the method q() on a Variable instance.
-            Default: []
+            Defaults to an empty list.
         processes (list of Process): Processes that take place in the box.
-            Default: []
+            Defaults to an empty list.
         reactions (list of Reaction): Reactions that take place in the box.
-            Default: []
+            Defaults to an empty list.
 
     Attributes:
         id (int): ID of the box within a BoxModelSystem. Note: This
@@ -52,8 +53,8 @@ class Box:
 
     """
 
-    def __init__(self, name, name_long, fluid, condition=None, variables=[],
-                 processes=[], reactions=[]):
+    def __init__(self, name, name_long, fluid, condition=None, variables=None,
+                 processes=None, reactions=None):
         self.id = None
 
         if not name.isidentifier() or iskeyword(name):
@@ -66,12 +67,13 @@ class Box:
             raise bs_errors.FluidNotQuantifiedError('Fluid was not quantified!')
         self.fluid = fluid
         self.condition = condition if condition else bs_condition.Condition()
-        self.processes = processes
+        self.processes = processes or []
         self.processes.sort()
-        self.reactions = reactions
+        self.reactions = reactions or []
         self.reactions.sort()
         self.variables = AttrDict()
-
+        
+        variables = variables or []
         for variable in variables:
             if not variable.quantified:
                 raise bs_errors.VariableNotQuantifiedError(
@@ -134,6 +136,9 @@ class Box:
             concentration = concentration.to_base_units()
             return concentration
         return 0 * self.pint_ur.dimensionless
+
+    # REPRESENTATION functions
+
 
 
 

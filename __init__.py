@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 07:55:42 2016
+Created on Thu Jun 23 2016 at 07:55UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
@@ -42,7 +42,9 @@ __all__ = [
     'system',
     'tests',
     'transport',
-    'utils']
+    'utils',
+    'visualize',    
+]
 
 from . import action
 from . import box
@@ -55,6 +57,7 @@ from . import solver
 from . import system
 from . import transport
 from . import utils
+from . import visualize
 
 from .box import Box
 from .condition import Condition
@@ -62,3 +65,5 @@ from .entities import Fluid, Variable
 from .process import Process, Reaction
 from .transport import Flow, Flux
 from .system import BoxModelSystem
+from .visualize import SvgVisualization
+

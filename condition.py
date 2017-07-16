@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 10:23:46 2016
+Created on Thu Jun 23 2016 at 13:42UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 

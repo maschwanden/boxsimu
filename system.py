@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 10:37:12 2016
+Created on Thu Jun 23 2016 10:37UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
 """
 
 import pdb
+import re
+import random
 import copy
 import time as time_module
 import numpy as np
@@ -36,9 +38,12 @@ class BoxModelSystem:
         name (str): Human readable string describing the system.     
         boxes (list of Box): List of all Boxes that lie within the system.
         global_condition (Condition): Default conditions for all boxes
-            of the system. Default: None (-> Condition()).
-        flows (list of Flow): Fluid exchange of the Boxes. Default: []
-        fluxes (list of Flux): Variable exchange of the Boxes. Default: []
+            of the system. 
+            Defaults to an empty Condition.
+        flows (list of Flow): Fluid exchange of the Boxes. 
+            Defaults to an empty list.
+        fluxes (list of Flux): Variable exchange of the Boxes.
+            Defaults to an empty list.
 
     Attributes:
         name (str): Human readable string describing the system.     
@@ -53,14 +58,14 @@ class BoxModelSystem:
 
     """
 
-    def __init__(self, name, boxes, global_condition=None, fluxes=[], flows=[]):
+    def __init__(self, name, boxes, global_condition=None, fluxes=None, flows=None):
         if not len(boxes) > 0:
             raise ValueError('At least one box must be given!')
         
         self.name = name
         self.global_condition = global_condition or bs_condition.Condition()
-        self.flows = flows
-        self.fluxes = fluxes
+        self.flows = flows or []
+        self.fluxes = fluxes or []
 
         box_dict = {}
         for box in boxes:
@@ -764,7 +769,6 @@ class BoxModelSystem:
         for box in self.box_list:
             for variable_name, variable in self.variables.items():
                 if not reaction in box.reactions:
-                    A[box.id, variable.id] = 0 
                     continue
                 rate = reaction(time, self.get_box_context(box), variable)
                 rate = rate.to_base_units()
@@ -805,11 +809,17 @@ class BoxModelSystem:
 
         """
         # Initialize cube (minimal lenght of the axis of reactions is one)
-        N_reactions = len(self.reactions)
+        reactions = reactions or self.reactions
+        N_reactions = len(reactions)
+
+        if N_reactions == 0:
+            return (np.zeros([self.N_boxes, self.N_variables, 1]) * 
+                    self.pint_ur.kg / self.pint_ur.second)
+
         C = np.zeros([N_reactions, self.N_boxes, self.N_variables])
 
         units = []
-        for i, reaction in enumerate(self.reactions):
+        for i, reaction in enumerate(reactions):
             reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
             bs_dim_val.dimensionality_check_mass_per_time_err(reaction_2Darray)
             units.append(reaction_2Darray.units)
@@ -819,4 +829,8 @@ class BoxModelSystem:
         return np.moveaxis(C, 0, -1) * C_units
 
 
+    # REPRESENTATION functions
 
+
+        
+        

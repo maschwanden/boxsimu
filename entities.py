@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 23 07:56:18 2016
+Created on Thu Jun 23 2016 at 07:56UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
@@ -9,6 +9,7 @@ Created on Thu Jun 23 07:56:18 2016
 import copy
 import numpy as np
 
+# import all submodules with prefix 'bs' for BoxSimu
 from . import dimension_validation as bs_dim_val
 
 

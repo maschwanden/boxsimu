@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.1 r"
+   sodipodi:docname="basic_template_for_boxmodelsystem_svg_representation.svg">
+  <defs
+     id="defs2">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker5248"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path5246"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4967"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5248-1"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path5246-2"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.1694726"
+     inkscape:cx="370.39553"
+     inkscape:cy="776.83555"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1129"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1">
+    <sodipodi:guide
+       position="52.911015,190.45042"
+       orientation="1,0"
+       id="guide4956"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="174.55519,280.65128"
+       orientation="1,0"
+       id="guide4958"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g4890"
+       transform="translate(-18.947496,0.31674987)">
+      <rect
+         y="19.727051"
+         x="30.375364"
+         height="82.997261"
+         width="82.997261"
+         id="rect4485"
+         style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.58673871;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill" />
+      <flowRoot
+         transform="matrix(0.41434516,0,0,0.41434516,9.0798838,-12.320823)"
+         style="font-style:normal;font-weight:normal;font-size:25.54231262px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         id="flowRoot4487"
+         xml:space="preserve"><flowRegion
+           style="font-size:25.54231262px"
+           id="flowRegion4489"><rect
+             style="font-size:25.54231262px"
+             y="86.103172"
+             x="121.21831"
+             height="52.527931"
+             width="173.74623"
+             id="rect4491" /></flowRegion><flowPara
+           id="flowPara4493">Lake</flowPara></flowRoot>      <g
+         id="g4821">
+        <rect
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.45995796;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect4606"
+           width="72.532555"
+           height="20.613882"
+           x="35.607727"
+           y="42.143501" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="36.505463"
+           y="39.535465"
+           id="text4629"><tspan
+             sodipodi:role="line"
+             id="tspan4627"
+             x="36.505463"
+             y="39.535465"
+             style="font-size:5.29183912px;stroke-width:0.41434515px">Reactions:</tspan></text>
+      </g>
+      <text
+         id="text4655"
+         y="46.748001"
+         x="38.070984"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.52777767px;stroke-width:0.26458332px"
+           y="46.748001"
+           x="38.070984"
+           id="tspan4653"
+           sodipodi:role="line">- Photosynthesis</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="38.070984"
+         y="51.717545"
+         id="text4659"><tspan
+           sodipodi:role="line"
+           id="tspan4657"
+           x="38.070984"
+           y="51.717545"
+           style="font-size:3.52777767px;stroke-width:0.26458332px">- Remineralization</tspan></text>
+      <g
+         id="g4831">
+        <rect
+           y="74.009033"
+           x="35.607727"
+           height="20.613882"
+           width="72.532555"
+           id="rect4661"
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.45995796;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill" />
+        <text
+           id="text4665"
+           y="71.608536"
+           x="36.505463"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:5.29183912px;stroke-width:0.41434515px"
+             y="71.608536"
+             x="36.505463"
+             id="tspan4663"
+             sodipodi:role="line">Processes:</tspan></text>
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="38.070984"
+         y="82.036659"
+         id="text4669"><tspan
+           sodipodi:role="line"
+           id="tspan4667"
+           x="38.070984"
+           y="82.036659"
+           style="font-size:3.52777767px;stroke-width:0.26458332px"> </tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-205.01495"
+       y="4.7373214"
+       id="text4673"><tspan
+         sodipodi:role="line"
+         id="tspan4671"
+         x="-205.01495"
+         y="7.8585782"
+         style="font-size:3.52777767px;stroke-width:0.26458332px" /></text>
+    <g
+       id="g4907"
+       transform="translate(-10.122848,1.8610878)">
+      <rect
+         style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.58673859;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+         id="rect4713"
+         width="82.997261"
+         height="82.997261"
+         x="143.17056"
+         y="19.793186" />
+      <flowRoot
+         xml:space="preserve"
+         id="flowRoot4721"
+         style="font-style:normal;font-weight:normal;font-size:25.54231262px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         transform="matrix(0.41434516,0,0,0.41434516,108.93272,-12.320823)"><flowRegion
+           id="flowRegion4717"
+           style="font-size:25.54231262px"><rect
+             id="rect4715"
+             width="173.74623"
+             height="52.527931"
+             x="121.21831"
+             y="86.103172"
+             style="font-size:25.54231262px" /></flowRegion><flowPara
+           id="flowPara4719">Sediment</flowPara></flowRoot>      <g
+         transform="translate(0,-5.9188753)"
+         id="g4816">
+        <rect
+           y="48.895645"
+           x="149.3353"
+           height="18.433311"
+           width="72.052986"
+           id="rect4723"
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.3760103;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill" />
+        <text
+           id="text4727"
+           y="46.843616"
+           x="149.36679"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:5.29183912px;stroke-width:0.41434515px"
+             y="46.843616"
+             x="149.36679"
+             id="tspan4725"
+             sodipodi:role="line">Reactions:</tspan></text>
+      </g>
+      <g
+         transform="translate(0,-2.5147349)"
+         id="g4826">
+        <rect
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.3760103;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect4737"
+           width="72.052986"
+           height="18.433311"
+           x="149.3353"
+           y="77.460808" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="149.36679"
+           y="75.408775"
+           id="text4741"><tspan
+             sodipodi:role="line"
+             id="tspan4739"
+             x="149.36679"
+             y="75.408775"
+             style="font-size:5.29183912px;stroke-width:0.41434515px">Processes</tspan></text>
+      </g>
+      <text
+         id="text4745"
+         y="82.036659"
+         x="150.93231"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.52777767px;stroke-width:0.26458332px"
+           y="82.036659"
+           x="150.93231"
+           id="tspan4743"
+           sodipodi:role="line"> </tspan></text>
+    </g>
+    <g
+       id="g4954"
+       transform="translate(-17.186229,3.3419121)">
+      <rect
+         style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.58673859;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+         id="rect4679"
+         width="82.997261"
+         height="82.997261"
+         x="30.309229"
+         y="133.06793" />
+      <flowRoot
+         xml:space="preserve"
+         id="flowRoot4687"
+         style="font-style:normal;font-weight:normal;font-size:25.54231262px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         transform="matrix(0.41434516,0,0,0.41434516,-13.077928,101.53857)"><flowRegion
+           id="flowRegion4683"
+           style="font-size:25.54231262px"><rect
+             id="rect4681"
+             width="173.74623"
+             height="52.527931"
+             x="121.21831"
+             y="86.103172"
+             style="font-size:25.54231262px" /></flowRegion><flowPara
+           id="flowPara4685">Upper Ocean</flowPara></flowRoot>      <g
+         transform="translate(-5.7220459e-6)"
+         id="g4856">
+        <g
+           id="g4846">
+          <rect
+             style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.3714807;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+             id="rect4689"
+             width="72.057983"
+             height="18.310884"
+             x="35.778873"
+             y="162.2316" />
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             x="36.505463"
+             y="160.11836"
+             id="text4693"><tspan
+               sodipodi:role="line"
+               id="tspan4691"
+               x="36.505463"
+               y="160.11836"
+               style="font-size:5.29183912px;stroke-width:0.41434515px">Reactions:</tspan></text>
+        </g>
+        <text
+           id="text4697"
+           y="166.74623"
+           x="38.070984"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:3.52777767px;stroke-width:0.26458332px"
+             y="166.74623"
+             x="38.070984"
+             id="tspan4695"
+             sodipodi:role="line">- Photosynthesis</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="38.070984"
+           y="171.71577"
+           id="text4701"><tspan
+             sodipodi:role="line"
+             id="tspan4699"
+             x="38.070984"
+             y="171.71577"
+             style="font-size:3.52777767px;stroke-width:0.26458332px">- Remineralization</tspan></text>
+      </g>
+      <text
+         id="text4711"
+         y="195.3114"
+         x="38.070984"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.52777767px;stroke-width:0.26458332px"
+           y="195.3114"
+           x="38.070984"
+           id="tspan4709"
+           sodipodi:role="line"> </tspan></text>
+      <g
+         transform="translate(-1.9073486e-6)"
+         id="g4869">
+        <rect
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.43634272;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect4703"
+           width="71.998611"
+           height="20.10037"
+           x="35.808556"
+           y="190.83218" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="36.505463"
+           y="188.6835"
+           id="text4707"><tspan
+             sodipodi:role="line"
+             id="tspan4705"
+             x="36.505463"
+             y="188.6835"
+             style="font-size:5.29183912px;stroke-width:0.41434515px">Processes</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="38.070984"
+           y="195.2686"
+           id="text4749"><tspan
+             sodipodi:role="line"
+             id="tspan4747"
+             x="38.070984"
+             y="195.2686"
+             style="font-size:3.52777767px;stroke-width:0.26458332px">- PO4 relase from continental shelf</tspan></text>
+        <text
+           id="text4753"
+           y="199.88789"
+           x="38.070984"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:3.52777767px;stroke-width:0.26458332px"
+             y="199.88789"
+             x="38.070984"
+             id="tspan4751"
+             sodipodi:role="line">- PO4 sink to continental shelf</tspan></text>
+        <text
+           id="text4757"
+           y="204.50717"
+           x="38.070984"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:3.52777767px;stroke-width:0.26458332px"
+             y="204.50717"
+             x="38.070984"
+             id="tspan4755"
+             sodipodi:role="line">- NO3 relase from continental shelf</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="38.070984"
+           y="209.12648"
+           id="text4761"><tspan
+             sodipodi:role="line"
+             id="tspan4759"
+             x="38.070984"
+             y="209.12648"
+             style="font-size:3.52777767px;stroke-width:0.26458332px">- NO3 sink to continental shelf</tspan></text>
+      </g>
+    </g>
+    <g
+       id="g4924"
+       transform="translate(-11.033702,5.4333397)">
+      <rect
+         y="132.63104"
+         x="143.17055"
+         height="82.997269"
+         width="82.997261"
+         id="rect4781"
+         style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.58673859;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill" />
+      <flowRoot
+         transform="matrix(0.41434516,0,0,0.41434516,101.81169,102.62207)"
+         style="font-style:normal;font-weight:normal;font-size:25.54231262px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         id="flowRoot4789"
+         xml:space="preserve"><flowRegion
+           style="font-size:25.54231262px"
+           id="flowRegion4785"><rect
+             style="font-size:25.54231262px"
+             y="86.103172"
+             x="121.21831"
+             height="52.527931"
+             width="173.74623"
+             id="rect4783" /></flowRegion><flowPara
+           id="flowPara4787">Deep Ocean</flowPara></flowRoot>      <g
+         transform="translate(-0.69261169,0.40515289)"
+         id="g4836">
+        <rect
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.3760103;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect4791"
+           width="72.052986"
+           height="18.433311"
+           x="149.3353"
+           y="161.73349" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="149.36679"
+           y="159.68147"
+           id="text4795"><tspan
+             sodipodi:role="line"
+             id="tspan4793"
+             x="149.36679"
+             y="159.68147"
+             style="font-size:5.29183912px;stroke-width:0.41434515px">Reactions:</tspan></text>
+      </g>
+      <g
+         transform="translate(-0.69261169,1.3338192)"
+         id="g4841">
+        <rect
+           y="190.29865"
+           x="149.3353"
+           height="18.433311"
+           width="72.052986"
+           id="rect4797"
+           style="opacity:0.50899999;fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.3760103;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke markers fill" />
+        <text
+           id="text4801"
+           y="188.24663"
+           x="149.36679"
+           style="font-style:normal;font-weight:normal;font-size:5.29183912px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.41434515px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           xml:space="preserve"><tspan
+             style="font-size:5.29183912px;stroke-width:0.41434515px"
+             y="188.24663"
+             x="149.36679"
+             id="tspan4799"
+             sodipodi:role="line">Processes</tspan></text>
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="150.93231"
+         y="194.87451"
+         id="text4805"><tspan
+           sodipodi:role="line"
+           id="tspan4803"
+           x="150.93231"
+           y="194.87451"
+           style="font-size:3.52777767px;stroke-width:0.26458332px"> </tspan></text>
+    </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5248)"
+       d="m 52.966208,136.26511 c -4.366255,-9.28615 -13.713438,-16.14823 0,-33.04313"
+       id="path4962"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5248-1)"
+       d="m 52.966208,102.5747 c 4.366255,9.28615 13.713438,16.14823 0,33.04313"
+       id="path4962-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+  </g>
+</svg>

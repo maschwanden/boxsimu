@@ -329,9 +329,9 @@ class BoxModelSystem1Test(TestCase):
         self.assertEqual(q[self.do.id], 0 * ur.kg/ur.second)
 
     def test_reaction_rate_cube(self):
-        rr_cube = self.system.get_reaction_rate_3Darray(0*ur.second)
-        self.assertEqual(rr_cube[self.uo.id][0][0], 0 * ur.kg/ur.second)
-        self.assertEqual(rr_cube[self.do.id][0][0], 0 * ur.kg/ur.second)
+        C = self.system.get_reaction_rate_3Darray(0*ur.second)
+        self.assertEqual(C[self.uo.id, 0, 0], 0 * ur.kg/ur.second)
+        self.assertEqual(C[self.do.id, 0, 0], 0 * ur.kg/ur.second)
 
 if __name__ == "__main__": 
     unittest.main()

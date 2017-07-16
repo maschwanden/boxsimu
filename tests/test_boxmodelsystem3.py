@@ -334,59 +334,67 @@ class BoxModelSystem1Test(TestCase):
                 self.D, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
 
-#     def test_reaction_rate_cube(self):
-#         C = self.system.get_reaction_rate_3Darray(
-#                 0*ur.second)
-#         m_no3 = self.system.get_variable_mass_1Darray(self.no3)
-#         m_phyto = self.system.get_variable_mass_1Darray(self.phyto)
-# 
-#         rr_photosynthesis_la = 0.8 * m_no3[self.box1.id] / (7.0 * ur.year)
-#         rr_photosynthesis_uo = 0.8 * m_no3[self.uo.id] / (7.0 * ur.year)
-#         rr_remineralization_la = 0.4 * m_phyto[self.box1.id] / (114 * ur.year)
-#         rr_remineralization_uo = 0.4 * m_phyto[self.uo.id] / (114 * ur.year)
-#         rr_remineralization_do = 0.4 * m_phyto[self.do.id] / (114 * ur.year)
-#         
-#         # Lake photosynthesis
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.po4.id, 0], 
-#                 -rr_photosynthesis_la * 1)
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.no3.id, 0], 
-#                 -rr_photosynthesis_la * 7)
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.phyto.id, 0], 
-#                 rr_photosynthesis_la * 114)
-# 
-#         # Upper Ocean photosynthesis
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.po4.id, 0], 
-#                 -rr_photosynthesis_uo * 1)
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.no3.id, 0], 
-#                 -rr_photosynthesis_uo * 7)
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.phyto.id, 0], 
-#                 rr_photosynthesis_uo * 114)
-# 
-#         # Lake remineralization
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.po4.id, 1], 
-#                 rr_remineralization_la * 1)
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.no3.id, 1], 
-#                 rr_remineralization_la * 7)
-#         self.assertPintQuantityAlmostEqual(C[self.box1.id, self.phyto.id, 1], 
-#                 -rr_remineralization_la * 114)
-# 
-#         # Upper Ocean remineralization
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.po4.id, 1], 
-#                 rr_remineralization_uo * 1)
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.no3.id, 1], 
-#                 rr_remineralization_uo * 7)
-#         self.assertPintQuantityAlmostEqual(C[self.uo.id, self.phyto.id, 1], 
-#                 -rr_remineralization_uo * 114)
-# 
-#         # Deep Ocean remineralization; NOTE: the reaction-index is here 0 
-#         # again, because the reactions are just filled in any order!
-#         self.assertPintQuantityAlmostEqual(C[self.do.id, self.po4.id, 0], 
-#                 rr_remineralization_do * 1)
-#         self.assertPintQuantityAlmostEqual(C[self.do.id, self.no3.id, 0], 
-#                 rr_remineralization_do * 7)
-#         self.assertPintQuantityAlmostEqual(C[self.do.id, self.phyto.id, 0], 
-#                 -rr_remineralization_do * 114)
-# 
+    def test_reaction_rate_cube(self):
+        C = self.system.get_reaction_rate_3Darray(
+                0*ur.second)
+        m_A = self.system.get_variable_mass_1Darray(self.A)
+        m_B = self.system.get_variable_mass_1Darray(self.B)
+        m_C = self.system.get_variable_mass_1Darray(self.C)
+        m_D = self.system.get_variable_mass_1Darray(self.D)
+
+        rr_1 = 0.2 * m_B[self.box1.id] / (5 * ur.year)
+        rr_2 = 0 * ur.kg / ur.year
+
+        reaction1_id = 0
+        reaction2_id = 1
+        
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.A.id, reaction1_id], 
+                -rr_1*3)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.B.id, reaction1_id], 
+                -rr_1*5)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction1_id], 
+                rr_1*2)
+        self.assertEqual(C[self.box1.id, self.D.id, reaction1_id], 
+                rr_1*0)
+
+        self.assertEqual(C[self.box1.id, self.A.id, reaction2_id], 
+                rr_2*0)
+        self.assertEqual(C[self.box1.id, self.B.id, reaction2_id], 
+                rr_2*0)
+        self.assertEqual(C[self.box1.id, self.C.id, reaction2_id], 
+                -rr_2*1)
+        self.assertEqual(C[self.box1.id, self.D.id, reaction2_id], 
+                rr_2*1)
+
+        self.system.boxes.box1.variables.C.mass = 10 * ur.kg
+        C = self.system.get_reaction_rate_3Darray(
+                0*ur.second)
+        m_C = self.system.get_variable_mass_1Darray(self.C)
+
+        rr_1 = 0.2 * m_B[self.box1.id] / (5 * ur.year)
+        rr_2 = 0.1 * (m_C[self.box1.id]-0.5*ur.kg) / ur.year
+
+        reaction1_id = 0
+        reaction2_id = 1
+        
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.A.id, reaction1_id], 
+                -rr_1*3)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.B.id, reaction1_id], 
+                -rr_1*5)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction1_id], 
+                rr_1*2)
+        self.assertEqual(C[self.box1.id, self.D.id, reaction1_id], 
+                rr_1*0)
+
+        self.assertEqual(C[self.box1.id, self.A.id, reaction2_id], 
+                rr_2*0)
+        self.assertEqual(C[self.box1.id, self.B.id, reaction2_id], 
+                rr_2*0)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction2_id], 
+                -rr_2*1)
+        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.D.id, reaction2_id], 
+                rr_2*1)
+
 if __name__ == "__main__": 
     unittest.main()
 

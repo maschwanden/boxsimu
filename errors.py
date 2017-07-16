@@ -1,7 +1,7 @@
 
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 30 12:51:29 2017
+Created on Thu Jun 30 2017 at 12:51UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 

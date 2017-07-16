@@ -6,10 +6,11 @@ Created on Thu Jun 23 08:42:29 2016
 
 """
 
+import re
 import numpy as np
 
 
-def _1Darray_to_2Darray_method(vector_method):
+def OneDarray_to_TwoDarray_method(vector_method):
     """Return method that returns 2Darray from 1Darrays from vector_method."""
     def _2Darray_method(self, *args):
         tmp_vector_list = [0] * self.N_variables
@@ -35,4 +36,12 @@ def np_pint_dot(a, b):
     return np.dot(a.magnitude, b.magnitude) * a_units * b_units
 
 
+def get_valid_filename_from_string(string): 
+    tmp_str = str(string).strip().replace(' ', '_')
+    return re.sub(r'(?u)[^-\w.]', '', tmp_str)        
+
+
+def get_valid_svg_id_from_string(string):
+    tmp_str = str(string).strip().replace(' ', '_')
+    return re.sub(r'(?u)[^-\w.]', '', tmp_str)        
 
