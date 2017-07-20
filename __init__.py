@@ -49,6 +49,7 @@ __all__ = [
 from . import action
 from . import box
 from . import condition
+from . import config
 from . import entities
 from . import errors
 from . import process
@@ -65,5 +66,4 @@ from .entities import Fluid, Variable
 from .process import Process, Reaction
 from .transport import Flow, Flux
 from .system import BoxModelSystem
-from .visualize import SvgVisualization
 

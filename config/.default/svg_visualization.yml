@@ -3,8 +3,8 @@
 # -----------------------------
 
 # Chose between circle and half_circle
-boxes_arrangement_type : circle
-boxes_arrangement_angle_offset : 0
+system_boxes_arrangement_type : circle
+system_boxes_arrangement_angle_offset : 0
 
 # "Box half circle": Radius of the half circle on which the 
 # boxes of the system will be positioned. 
@@ -12,37 +12,57 @@ boxes_arrangement_angle_offset : 0
 # is the factor times the maximal dimension of the boxes 
 # (max of box_rect_width and box_rect_height)
 
-box_circle_radius : 
-box_circle_radius_factor : 1.2
+system_circle_radius : 
+system_circle_radius_factor : 1.2
 
-box_half_circle_radius : 
-box_half_circle_radius_factor : 1.7
+system_half_circle_radius : 
+system_half_circle_radius_factor : 1.7
 
-# Box Rect Attributes
-# -----------------------------
-box_rect_width : 300
-box_rect_height : 300
+# Box Attributes
+# ----------------------------
+
+# ----------------
+# MAIN RECT
+# ----------------
+# minimum width and height of boxes
+box_rect_width_min : 300
+box_rect_height_min : 300
 box_rect_color : lightgrey
 box_rect_opacity : 0.7
 box_rect_stroke_color : black
 box_rect_stroke_opacity : 1
 box_rect_stroke_width : 5
 
-box_title_font_size : 20
+box_content_margin_absolute : 10
+
+# position of the box title ['extern', 'intern']
+box_title_position : intern
+box_title_alignement : middle
+box_title_font_size : 24
 box_title_font_color : black
-# Relative position of the title within the box_rect
-box_title_rel_pos_horizontal : 0.5  
-box_title_rel_pos_vertical : 0.1
 
-box_subrect_width_relative : 0.9
-box_subrect_top_margin_relative : 0.05
-box_subrect_color : darkgrey
-box_subrect_opacity : 0.5
-box_subrect_stroke_color : darkgrey
-box_subrect_stroke_opacity : 0.1
-box_subrect_stroke_width : 1
+# ----------------
+# CHILD RECT
+# ----------------
+box_child_rect_width_relative : 0.925
+box_child_rect_color : darkgrey
+box_child_rect_opacity : 0.5
+box_child_rect_stroke_color : white
+box_child_rect_stroke_opacity : 1
+box_child_rect_stroke_width : 3
 
-box_info_font_size : 12
-box_info_font_color : black
+# position of the child box titles ['extern', 'intern']
+box_child_title_position : extern
+box_child_title_alignement : left
+box_child_title_font_size : 15
+box_child_title_font_color : black
+
+
+# ----------------
+# TEXT
+# ----------------
+box_text_font_size : 12
+box_text_font_color : black
+box_text_alignement : left
 
 ...
