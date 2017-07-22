@@ -9,6 +9,7 @@ Created on Thu Jun 23 10:45:10 2016
 import unittest
 from unittest import TestCase
 
+import os
 import sys
 import copy
 import pandas as pd
@@ -21,9 +22,8 @@ from matplotlib import pyplot as plt
 from pint import UnitRegistry
 ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
-BOXSIMU_PATH = '/home/aschi/Documents/MyPrivateRepo/boxsimu_project'
-if not BOXSIMU_PATH in sys.path:
-    sys.path.append(BOXSIMU_PATH)
+if not os.path.abspath(__file__ + "/../../../") in sys.path:
+    sys.path.append(os.path.abspath(__file__ + "/../../../"))
 
 from boxsimu.entities import Fluid, Variable
 from boxsimu.box import Box

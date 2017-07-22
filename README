@@ -6,5 +6,10 @@ variables are altered by fluid-flows, variable-fluxes, processes and
 reactions.
 
 Requirements:
+- numpy
+- matplotlib
+- pandas
+- pint 
+- attrdict
 - svgwrite
 - PyYAML

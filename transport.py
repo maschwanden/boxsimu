@@ -8,8 +8,6 @@ Created on Fri Jun 24 18:57:31 2016
 
 import copy
 
-from scipy import integrate
-
 from . import box as bs_box
 from . import errors as bs_errors
 from . import entities as bs_entities
