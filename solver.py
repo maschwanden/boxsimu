@@ -13,9 +13,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
+import math
 
-from . import solution
-from . import utils
+from . import solution as bs_solution
+from . import utils as bs_utils
 
 DEBUG = False
 
@@ -44,9 +45,9 @@ class Solver:
             which contains the time series of the fluid masses of all boxes of the system
             and can also plot them.
 
-
     Attributes:
         system (System): System which is simulated.
+
     """
 
     def __init__(self, system):
@@ -61,73 +62,69 @@ class Solver:
             dt (pint.Quantity [T]): Timestep used.
 
         Returns:
-            mass_changes (list of pint.Quantities): Array with the magnitude of mass
-                                      changes for every box
-            f (): Flow matrix.
+            dm (numpy 1D array of pint.Quantities): Mass changes of every box.
+            f (numpy 1D array): Reduction coefficient of the mass 
+                flows (due to becoming-empty boxes -> box mass cannot 
+                decrase below 0kg).
+
         """
         # f is the reduction coefficent of the "sink-flows" of each box
         # scaling factor for sinks of each box
         f = np.ones(self.system.N_boxes)
-        m, m_units = self.system.get_box_fluid_mass_vector()
-        m_ini = copy.deepcopy(m)
-        # A, q, and s all have units of mass flux [kg/s]
-        A = self.system.get_flow_matrix(time, self.system.flows)
-        q = self.system.get_flow_source_vector(time, self.system.flows)
-        s = self.system.get_flow_sink_vector(time, self.system.flows)
+        v1 = np.ones(self.syste.N_boxes)
 
-        dimless_dt = (
-            (self.system.flows[0].units /
-             m_units) *
-            dt).to_base_units().magnitude
+        m_init = self.system.get_fluid_mass_1Darray()
 
-        m_change = (q - s - np.dot(A, np.ones(self.system.N_boxes)) +
-                    np.dot((A).T, np.ones(self.system.N_boxes))) * dimless_dt
-        m = m_ini + m_change
+        # get internal flow matrix and calculate the internal souce and sink 
+        # vectors. Also get the external sink and source vector
+        A = self.system.get_fluid_mass_internal_flow_2Darray()
+        # internal 
+        s_i = bs_utils.dot(A, v1)
+        q_i = bs_utils.dot(A.T, v1)
+        s_e = self.system.get_fluid_mass_flow_sink_1Darray()
+        q_e = self.system.get_fluid_mass_flow_source_1Darray()
+
+
+        # calculate first estimate of mass change vector
+        dm = (q_e + q_i - s_e - s_i) * dt
+        # calculate first estimate of mass after timestep
+        m = m_ini + dm
 
         while np.any(m < 0):
             argmin = np.argmin(m)
-            flow_source_arr = A[:, np.argmin(m)]
-            flow_sink_arr = A[np.argmin(m), :]
-            source = q[np.argmin(m)]
-            sink = s[np.argmin(m)]
-
+            # Calculate net sink and source and mass of the 'empty' box.
+            net_source = q_e[argmin] + q_i[argmin]
+            net_sink = s_e[argmin] + s_i[argmin]
             available_mass = m_ini[argmin]
-            net_source = sum(flow_source_arr) + source
-            net_sink = sum(flow_sink_arr) + sink
 
-            if (net_source + available_mass) > 0:
-                f[argmin] = min(
-                    float(net_source + available_mass) / float(net_sink),
-                    f[argmin] * 0.95
-                )
+            if (net_source + available_mass) > 0 and net_sink > 0:
+                f[argmin] = min(float(net_source + available_mass) / 
+                        float(net_sink), f[argmin] * 0.95)
             else:
                 f[argmin] = 0
 
             # Apply reduction of sinks of the box
-            #dprint('A before correction: ', A)
-            #dprint('f for correction: ', f)
-            A = (A.transpose() * f).transpose()
-            #dprint('A after correction: ', A)
-            s = f * s
-            v1 = np.ones(self.system.N_boxes)
-            m_change = (q - s - np.dot(A, v1) + np.dot((A).T, v1)) * dimless_dt
-            m = m_ini + m_change
-        return m_change, m_units, f
+            A = (A.T * f).T
+            s_i = bs_utils.dot(A, v1)
+            q_i = bs_utils.dot(A.T, v1)
+            s_e = f * s_e
+            dm = (q_e + q_i - s_e - s_i) * dt
+            m = m_ini + dm
+        return dm, f
 
     def _calculate_changes_of_variable(self, time, dt, variable, f_flow):
         """ Calculates the changes of ONE variable in every box.
 
-        Attributes:
-        - time (pint quantity): time at which the mass flows should be
-                                calculated
-        - dt (pint quantity): timestep used
-        - f_flow (numpy 1D array): Reduction coefficient of the mass flows due to
-                                   empty boxes.
+        Args:
+            time (pint.Quantity [T]): Current time (age) of the system.
+            dt (pint.Quantity [T]): Timestep used.
+            f_flow (numpy 1D array): Reduction coefficient of the mass flows 
+                due to empty boxes.
 
         Returns:
-        - var_changes (numpy array): Array with the magnitude of variable
-                                      changes for every box
-        - var_units (numpy array): Units of var_changes
+            dvar (numpy 1D array of pint.Quantities): Variables changes of 
+                every box.
+
         """
         # reduction coefficent of the "variable-sinks" of each box for the
         # treated variable
@@ -373,23 +370,21 @@ class Solver:
         pass
 
     def solve_flows(self, total_integration_time, dt, debug=True):
-        global DEBUG
-        DEBUG = debug
-        pdb.set_trace()
+        # pdb.set_trace()
 
         print('Start solving the flows of the box model...')
-        print('- integration time: {}'.format(total_integration_time))
-        print('- time step: {}'.format(dt))
+        print('- total integration time: {}'.format(total_integration_time))
+        print('- dt (time step): {}'.format(dt))
 
         # Get number of time steps - round up if there is a remainder
-        N_time_steps = int(total_integration_time / dt)
+        N_time_steps = math.ceil(total_integration_time / dt)
         time = total_integration_time * 0
 
         # Start time of function
         start_time = time_module.time()
 
-        sol = solution.Solution(
-            total_integration_time, dt, self.system.box_list)
+        sol = solution.Solution(total_integration_time, dt, 
+                self.system.box_list)
 
         progress = 0
         for i in range(N_time_steps):

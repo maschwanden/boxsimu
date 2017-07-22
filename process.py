@@ -8,12 +8,36 @@ Created on Thu Jun 23 2016 10:36UTC
 
 import copy
 
-from . import action as bs_action
+from . import dimensionality_validation as bs_dim_val
 from . import entities as bs_entities
 from . import errors as bs_errors
 
 
-class Process(bs_action.BaseAction):
+class BaseProcess:
+    """Base Class for Process and Reaction."""
+    def __str__(self):
+        return '<BaseProcess {}>'.format(self.name)
+
+    def __hash__(self):
+        return hash(repr(self))
+        
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return False
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name > other.name
+        return False
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name < other.name
+        return False
+
+
+class Process(BaseProcess):
     """Destruction or creation of variable with a specified (dynamic) rate.
 
     An internal process can be a production or destruction of a variable.
@@ -38,7 +62,15 @@ class Process(bs_action.BaseAction):
         self.variable = variable
         self.rate = rate
 
-        self.units = None
+    def __call__(self, time, context):
+        """Return rate of the process [M/T]."""
+        rate = self.rate  # Default rate
+        if callable(self.rate):
+            rate = self.rate(time, context)
+        if bs_dim_val.is_mole_per_time(rate):
+            if self.variable.molar_mass:
+                rate = rate * self.variable.molar_mass
+        return rate.to_base_units()
 
     @classmethod
     def get_all_of_variable(cls, variable, processes):
@@ -49,7 +81,7 @@ class Process(bs_action.BaseAction):
         return [p for p in processes if p.box == box]
 
 
-class Reaction(bs_action.BaseAction):
+class Reaction(BaseProcess):
     """Transform masses of different Variables into each other.
 
     A reaction can for example be:
@@ -88,41 +120,29 @@ class Reaction(bs_action.BaseAction):
 
     def __init__(self, name, variable_reaction_coefficients, rate):
         self.name = name
-        self.variables = []
         self.variable_reaction_coefficients = variable_reaction_coefficients
         
+        self.variables = []
         for variable, coeff in variable_reaction_coefficients.items():
             self.variables.append(variable)
 
         self.rate = rate
-        self.units = None
 
     def __call__(self, time, context, variable):
-        rate_func = self.get_rate_function_of_variable(variable)
-        rate = rate_func(time, context)
-        if not self.units:
-            self.units = rate.units
-        return rate.to_base_units()
-
-    def get_coeff_of(self, variable):
-        """Return the reaction coefficient of variable."""
+        """Return rate of the variable transformation [M/T]."""
         if not isinstance(variable, bs_entities.Variable):
             raise ValueError('{} is not a Variable!'.format(variable))
         if variable not in self.variables:
-            return 0
-        return self.variable_reaction_coefficients[variable]
+            var_coeff = 0
+        else:
+            var_coeff = self.variable_reaction_coefficients[variable]
 
-    def get_rate_function_of_variable(self, variable):
-        """Return a rate function with which a variable reacts."""
-        coeff = self.get_coeff_of(variable)
-
-        rr = self.rate
-
-        def _rate_func(t, c):
-            rr = self.rate
-            if callable(self.rate):
-                rr = self.rate(t, c)
-
-            return rr * coeff
-        return _rate_func
+        rate = self.rate  # Default rate
+        if callable(self.rate):
+            rate = self.rate(time, context)
+        if bs_dim_val.is_mole_per_time(rate):
+            if self.variable.molar_mass:
+                rate = rate * self.variable.molar_mass
+        rate = rate.to_base_units()
+        return var_coeff * rate
 

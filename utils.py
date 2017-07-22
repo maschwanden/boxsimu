@@ -21,7 +21,7 @@ def OneDarray_to_TwoDarray_method(vector_method):
     return _2Darray_method
 
 
-def np_pint_dot(a, b):
+def dot(a, b):
     """Calculate dot product of numpy arrays of pint Quantities.
     
     Calculat the dot product of two numpy arrays of pint Quantities while
@@ -32,7 +32,6 @@ def np_pint_dot(a, b):
     """
     a_units = a.units
     b_units = b.units
-
     return np.dot(a.magnitude, b.magnitude) * a_units * b_units
 
 

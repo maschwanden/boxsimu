@@ -26,7 +26,7 @@ class Condition(AttrDict):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Condition, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         for key, value in self.items():
             if not key.isidentifier() or iskeyword(key):

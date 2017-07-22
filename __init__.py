@@ -10,6 +10,9 @@ import os
 import sys
 import inspect
 
+from pint import UnitRegistry
+ur = UnitRegistry()
+
 
 # realpath() will make your script run, even if you symlink it :)
 _cmd_folder = os.path.realpath(
@@ -32,7 +35,6 @@ if _cmd_subfolder not in sys.path:
     sys.path.insert(0, _cmd_subfolder)
 
 __all__ = [
-    'action',
     'box',
     'condition',
     'entities',
@@ -46,12 +48,12 @@ __all__ = [
     'visualize',    
 ]
 
-from . import action
 from . import box
 from . import condition
 from . import config
 from . import entities
 from . import errors
+from . import dimensionality_validation
 from . import process
 from . import solution
 from . import solver

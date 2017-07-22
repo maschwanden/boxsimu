@@ -22,9 +22,7 @@ from .config import svg_visualization_config as svg_config
 
 
 class BoxModelSystemSvgHelper:
-    def __init__(self, system):
-        self.system = system
-
+    def __init__(self):
         config = self._get_svg_visualization_config()
         self.box_rect_width = config['box_rect_width_min']
         self.box_rect_height = config['box_rect_height_min']
@@ -40,36 +38,30 @@ class BoxModelSystemSvgHelper:
         self.system_boxes_arrangement_angle_offset = \
                 config['system_boxes_arrangement_angle_offset']
 
-        self.box_svg_helpers = self._get_system_box_svg_helpers()
+        self.box_svg_helpers = None
 
         self.dwg = svgwrite.Drawing()
    
-    def save_system_as_svg(self, filename=None):
-        if filename is None:
-            filename = bs_utils.get_valid_filename_from_string(
-                    self.system.name)
-        if '.' not in filename:
-            filename += '.svg'
-        self._save_group_as_svg(self.get_system_svg_group(), filename)
+    def save_system_as_svg(self, system, filename):
+        if not self.box_svg_helpers:
+            self.box_svg_helpers = self._get_system_box_svg_helpers(system)
+        self._save_group_as_svg(self.get_system_svg_group(system), filename)
 
-    def get_system_svg_group(self):
+    def get_system_svg_group(self, system):
         """Return the SVG representation of the BoxModelSystem instance."""
-        group_id = bs_utils.get_valid_svg_id_from_string(self.system.name)
+        if not self.box_svg_helpers:
+            self.box_svg_helpers = self._get_system_box_svg_helpers(system)
+        group_id = bs_utils.get_valid_svg_id_from_string(system.name)
         group = self.dwg.g(id=group_id)
 
-        box_svg_helpers = self._get_system_box_svg_helpers()
-        for box_svg_helper in box_svg_helpers:
+        for box_svg_helper in self.box_svg_helpers:
             group.add(box_svg_helper.as_svg_group())
 
-        for flow in self.system.flows:
+        for flow in system.flows:
             group.add(self._get_flow_arrow(flow))
         return group
 
     def save_box_as_svg(self, box, filename=None):
-        if filename is None:
-            filename = bs_utils.get_valid_filename_from_string(box.name)
-        if '.' not in filename:
-            filename += '.svg'
         self._save_group_as_svg(self.get_box_svg_group(box), filename)
 
     def get_box_svg_group(self, box):
@@ -94,11 +86,11 @@ class BoxModelSystemSvgHelper:
         dwg.add(group)
         dwg.save()
 
-    def _get_system_box_svg_helpers(self):
+    def _get_system_box_svg_helpers(self, system):
         """Return BoxSvgHelper for all boxes of the system."""
-        box_positions = self._get_box_positions(self.system.N_boxes)
-        box_svg_helpers = [None] * self.system.N_boxes
-        for box_name, box in self.system.boxes.items():
+        box_positions = self._get_box_positions(system.N_boxes)
+        box_svg_helpers = [None] * system.N_boxes
+        for box_name, box in system.boxes.items():
             x, y = box_positions[box.id] 
             tmp_box_svg_helper = self._get_box_svg_helper(box, x, y) 
             box_svg_helpers[box.id] = tmp_box_svg_helper

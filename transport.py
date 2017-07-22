@@ -10,17 +10,13 @@ import copy
 
 from scipy import integrate
 
-from pint import UnitRegistry
-ur = UnitRegistry(autoconvert_offset_to_baseunit=True)
-
-from . import action as bs_action
 from . import box as bs_box
 from . import errors as bs_errors
 from . import entities as bs_entities
-from . import dimension_validation as bs_dim_val
+from . import dimensionality_validation as bs_dim_val
 
 
-class BaseTransport(bs_action.BaseAction):
+class BaseTransport:
     """Base class for transports of fluids and variables.
 
     Args:
@@ -38,7 +34,6 @@ class BaseTransport(bs_action.BaseAction):
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
             at which the variable is transported. Note: Must have dimensions of
             [M/T].
-        units (pint.Units): Units of rate.
 
     """
 
@@ -48,10 +43,33 @@ class BaseTransport(bs_action.BaseAction):
         self.target_box = target_box
         self.rate = rate
 
-        self.units = None
-
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
+
+    def __hash__(self):
+        return hash(repr(self))
+        
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return False
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name > other.name
+        return false
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name < other.name
+        return false
+
+    def __call__(self, *args, **kwargs):
+        """Instances can be called like functions."""
+        rate = self.rate  # Default of rate
+        if callable(self.rate):
+            rate = self.rate(*args, **kwargs)
+        return rate.to_base_units()
 
     @classmethod
     def get_all_from(cls, source_box, flows):
@@ -150,12 +168,12 @@ class Flow(BaseTransport):
             if not isinstance(variable, bs_entities.Variable):
                 raise ValueError('Keys of the variable_concentration_dict must be '
                     'instances of the class Variable!')
-            bs_dim_val.dimensionality_check_dimless_err(concentration)
+            bs_dim_val.raise_if_not_dimless(concentration)
             var_copy = copy.deepcopy(variable)
             self.variables.append(var_copy)
             self.concentrations[var_copy] = concentration
 
-        super(Flow, self).__init__(name, source_box, target_box, rate)
+        super().__init__(name, source_box, target_box, rate)
 
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
@@ -172,7 +190,7 @@ class Flow(BaseTransport):
         if not isinstance(variable, bs_entities.Variable):
             raise ValueError('Keys of the variable_concentration_dict must be '
                 'instances of the class Variable!')
-        bs_dim_val.dimensionality_check_dimless(concentration)
+        bs_dim_val.raise_if_not_dimless(concentration)
         self.concentrations[variable] = concentration
 
 
@@ -205,5 +223,5 @@ class Flux(BaseTransport):
 
         self.variable = variable
 
-        super(Flux, self).__init__(name, source_box, target_box, rate)
+        super().__init__(name, source_box, target_box, rate)
 

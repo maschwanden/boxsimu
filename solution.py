@@ -13,7 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 
-from . import dimension_validation as bs_dim_val
+from . import dimensionality_validation as bs_dim_val
 from . import system as bs_system
 
 

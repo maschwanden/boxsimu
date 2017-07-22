@@ -23,8 +23,9 @@ from . import transport as bs_transport
 from . import process as bs_process
 from . import condition as bs_condition
 from . import solution as bs_solution
-from . import dimension_validation as bs_dim_val
+from . import dimensionality_validation as bs_dim_val
 from . import utils as bs_utils
+from . import visualize as bs_visualize
 
 
 class BoxModelSystem:
@@ -255,7 +256,7 @@ class BoxModelSystem:
         units = []
         for box_name, box in self.boxes.items():
             fluid_mass = box.fluid.mass.to_base_units()
-            bs_dim_val.dimensionality_check_mass_err(fluid_mass)
+            bs_dim_val.raise_if_not_mass(fluid_mass)
             units.append(fluid_mass.units)
             m[box.id] = fluid_mass.magnitude
         
@@ -281,7 +282,7 @@ class BoxModelSystem:
         units = []
         for box_name, box in self.boxes.items():
             variable_mass = box.variables[variable.name].mass.to_base_units()
-            bs_dim_val.dimensionality_check_mass_err(variable_mass)
+            bs_dim_val.raise_if_not_mass(variable_mass)
             units.append(variable_mass.units)
             m[box.id] = variable_mass.magnitude
 
@@ -311,7 +312,7 @@ class BoxModelSystem:
                 concentration = 0 * self.pint_ur.dimensionless
             else:
                 concentration = (variable_mass / box.fluid.mass).to_base_units()
-            bs_dim_val.dimensionality_check_dimless_err(concentration)
+            bs_dim_val.raise_if_not_dimless(concentration)
             units.append(concentration.units)
             c[box.id] = concentration.magnitude
 
@@ -353,7 +354,7 @@ class BoxModelSystem:
                 continue
             src_box_context = self.get_box_context(flow.source_box)
             fluid_flow_rate = flow(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             A[flow.source_box.id, flow.target_box.id] += \
                     fluid_flow_rate.magnitude
@@ -390,7 +391,7 @@ class BoxModelSystem:
         for flow in flows:
             src_box_context = self.get_box_context(flow.source_box)
             fluid_flow_rate = flow(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             s[flow.source_box.id] += fluid_flow_rate.magnitude
 
@@ -426,7 +427,7 @@ class BoxModelSystem:
         for flow in flows:
             trg_box_context = self.get_box_context(flow.target_box)
             fluid_flow_rate = flow(time, trg_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             q[flow.target_box.id] += fluid_flow_rate.magnitude
 
@@ -487,13 +488,13 @@ class BoxModelSystem:
                 continue
             src_box_context = self.get_box_context(flow.source_box)
             fluid_flow_rate = flow(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(fluid_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             concentration = flow.source_box.get_concentration(variable)
-            bs_dim_val.dimensionality_check_dimless(concentration)
+            bs_dim_val.raise_if_not_dimless(concentration)
 
             variable_flow_rate = (fluid_flow_rate *
                     concentration).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time(variable_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(variable_flow_rate)
             units.append(variable_flow_rate.units)
             A[flow.source_box.id, flow.target_box.id] += \
                     variable_flow_rate.magnitude
@@ -563,8 +564,7 @@ class BoxModelSystem:
         for flow in bs_transport.Flow.get_all_from(None, variable_flows):
             variable_flow_rate = (flow(time, self.get_global_context()) * 
                     flow.concentrations[variable]).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(
-                    variable_flow_rate)
+            bs_dim_val.raise_if_not_mass_per_time(variable_flow_rate)
             units.append(variable_flow_rate.units)
             q[flow.target_box.id] += variable_flow_rate.magnitude
 
@@ -604,7 +604,7 @@ class BoxModelSystem:
 
             src_box_context = self.get_box_context(flux.source_box)
             flux_rate = flux(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             A[flux.source_box.id, flux.target_box.id] += flux_rate.magnitude
 
@@ -636,7 +636,7 @@ class BoxModelSystem:
         for flux in variable_fluxes:
             src_box_context = self.get_box_context(flux.source_box)
             flux_rate = flux(time, src_box_context).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             s[flux.source_box.id] += flux_rate.magnitude
 
@@ -668,7 +668,7 @@ class BoxModelSystem:
         for flux in variable_fluxes:
             trg_box_conetxt = self.get_box_context(flux.target_box)
             flux_rate = flux(time, trg_box_conetxt).to_base_units()
-            bs_dim_val.dimensionality_check_mass_per_time_err(flux_rate)
+            bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             q[flux.target_box.id] += flux_rate.magnitude
 
@@ -706,7 +706,7 @@ class BoxModelSystem:
             box_process_rates = [p(time, box_context).to_base_units() 
                     for p in box_processes]
             for rate in box_process_rates:
-                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                bs_dim_val.raise_if_not_mass_per_time(rate)
                 units.append(rate.units)
             sink_rates = [-rate for rate in box_process_rates 
                     if rate.magnitude < 0]
@@ -747,7 +747,7 @@ class BoxModelSystem:
             box_process_rates = [p(time, box_context).to_base_units() 
                     for p in box_processes]
             for rate in box_process_rates:
-                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                bs_dim_val.raise_if_not_mass_per_time(rate)
                 units.append(rate.units)
             source_rates = [rate for rate in box_process_rates 
                     if rate.magnitude > 0]
@@ -772,7 +772,7 @@ class BoxModelSystem:
                     continue
                 rate = reaction(time, self.get_box_context(box), variable)
                 rate = rate.to_base_units()
-                bs_dim_val.dimensionality_check_mass_per_time_err(rate)
+                bs_dim_val.raise_if_not_mass_per_time(rate)
                 units.append(rate.units)
                 A[box.id, variable.id] = rate.magnitude
 
@@ -821,7 +821,7 @@ class BoxModelSystem:
         units = []
         for i, reaction in enumerate(reactions):
             reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
-            bs_dim_val.dimensionality_check_mass_per_time_err(reaction_2Darray)
+            bs_dim_val.raise_if_not_mass_per_time(reaction_2Darray)
             units.append(reaction_2Darray.units)
             C[i,:,:] = reaction_2Darray.magnitude 
 
@@ -830,7 +830,13 @@ class BoxModelSystem:
 
 
     # REPRESENTATION functions
+    
+    def save_as_svg(self, filename):
+        if '.' not in filename:
+            filename += '.svg'
+        system_svg_helper = bs_visualize.BoxModelSystemSvgHelper()
+        system_svg_helper.save_system_as_svg(system=self, filename=filename)
 
+    # SOLVER functions
 
-        
-        
+            

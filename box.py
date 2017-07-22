@@ -57,9 +57,6 @@ class Box:
                  processes=None, reactions=None):
         self.id = None
 
-        if not name.isidentifier() or iskeyword(name):
-            raise ValueError('Name must be a valid python variable name!')
-
         self.name = name
         self.name_long = name_long
 
@@ -100,6 +97,19 @@ class Box:
         return false
 
     @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        # Make name an immutable attribute
+        if hasattr(self, '_name'):
+            raise AttributeError('Can\'t set immutable attribute')
+        if not value.isidentifier() or iskeyword(value):
+            raise ValueError('Name must be a valid python expression!')
+        self._name = value
+
+    @property
     def mass(self):
         variable_mass = sum(
             [var.mass for var_name, var in self.variables.items()])
@@ -138,7 +148,12 @@ class Box:
         return 0 * self.pint_ur.dimensionless
 
     # REPRESENTATION functions
-
+    
+    def save_as_svg(self, filename):
+        if '.' not in filename:
+            filename += '.svg'
+        system_svg_helper = bs_visualize.BoxModelSystemSvgHelper()
+        system_svg_helper.save_box_as_svg(box=self, filename=filename)
 
 
 
