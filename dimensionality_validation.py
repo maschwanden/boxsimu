@@ -148,3 +148,24 @@ def raise_if_not_dimless(quantity):
     """Raise DimensionalityError if quantity has not dimensions [1]."""
     raise_if_not(quantity, ur.dimensionless)
 
+
+
+# VECTOR/List validation methods
+
+
+def get_single_shared_unit(units, default_units):
+    """Returns unit if all units of list are identical.
+
+    If list is empty return the default units. If the list contains
+    multiple units, raise DimensionalityError.
+
+    """
+    units_set = set(units)
+    if len(units_set) == 1:
+        res_units = units_set.pop()
+    elif len(units_set) == 0:
+        res_units = default_units
+    else:
+        raise DimensionalityError(units_set.pop(), units_set.pop())
+    return res_units
+

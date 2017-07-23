@@ -10,13 +10,13 @@ import pdb
 import copy
 import time as time_module
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 import math
 
 from . import solution as bs_solution
 from . import utils as bs_utils
+from . import dimensionality_validation as bs_dim_val
 
 DEBUG = False
 
@@ -54,6 +54,179 @@ class Solver:
         self.system = system
         self._system_initial = copy.deepcopy(system)
 
+    def solve_flows(self, total_integration_time, dt):
+        print('Start solving the flows of the box model...')
+        print('- total integration time: {}'.format(total_integration_time))
+        print('- dt (time step): {}'.format(dt))
+
+        bs_dim_val.raise_if_not_time(total_integration_time)
+        bs_dim_val.raise_if_not_time(dt)
+
+        # Get number of time steps - round up if there is a remainder
+        N_timesteps = math.ceil(total_integration_time / dt)
+        time = total_integration_time * 0
+
+        # Start time of function
+        start_time = time_module.time()
+
+        sol = bs_solution.Solution(total_integration_time, dt, 
+                self.system)
+
+        progress = 0
+        for i in range(N_timesteps):
+            # Calculate progress in percentage of processed timesteps
+            progress_old = progress
+            progress = round(float(i) / float(N_timesteps), 1) * 100.0
+            if progress != progress_old:
+                print("{}%".format(progress))
+            sol.time.append(time)
+
+            dm, f = self._calculate_mass_flows(time, dt)
+
+            for box_name, box in self.system.boxes.items():
+                # Write changes to box objects
+                box.fluid.mass += dm[box.id]
+
+                # Save to Solution instance
+                sol.ts[box_name]['mass'].append(box.fluid.mass)
+
+            time += dt
+
+        # End Time of Function
+        end_time = time_module.time()
+        print('Function "solve_flows(...)" used {:3.3f}s'.format(
+                end_time - start_time))
+        return sol
+
+    def solve(self, total_integration_time, dt, debug=True):
+        global DEBUG
+        DEBUG = debug
+
+        print('Start solving the box model...')
+        print('- integration time: {}'.format(total_integration_time))
+        print('- time step: {}'.format(dt))
+
+        dprint('----> mm: ', self.system.mm)
+        dprint('----> sum(mm): ', self.system.mm.sum())
+
+        # Start time of function
+        start_time = time_module.time()
+
+        # Get number of time steps - round up if there is a remainder
+        N_timesteps = int(total_integration_time / dt)
+        time = total_integration_time * 0
+
+        sol = solution.Solution(
+            total_integration_time, dt, self.system.box_list)
+
+        progress = 0
+        for i in range(N_timesteps):
+            progress_old = progress
+            progress = round(float(i) / float(N_timesteps), 1) * 100.0
+            if progress != progress_old:
+                print("{}%".format(progress))
+            dprint('Time: {}'.format(time))
+            sol.time.append(time)
+            if time.magnitude > 140:
+                #DEBUG = True
+                # pdb.set_trace()
+                pass
+
+            ##################################################
+            # Calculate Mass fluxes
+            ##################################################
+
+            m_change, m_units, A = self._calculate_mass_flows(time, dt)
+
+            ##################################################
+            # Calculate Variable changes due to PROCESSES,
+            # REACTIONS, FUXES and finally due to the FLOWS
+            ##################################################
+
+            var_changes = {}
+            var_units = {}
+
+            for var_name, var in self.system.variables.items():
+                dprint('\n\n\n\n\nSOLVE for variable {}'.format(var_name))
+                var_changes[var_name] = self._calculate_changes_of_variable(
+                    time, dt, var, A)
+
+            dprint('var_changes: {}'.format(var_changes))
+            dprint('var_units: {}'.format(var_units))
+
+            ##################################################
+            # Apply changes to Boxes and save values to
+            # Solution instance
+            ##################################################
+
+            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+            for box_name, box in self.system.boxes.items():
+                for var_name, var in box.variables.items():
+                    dprint(
+                        '1111self.boxes[{}].variables[{}].mass: '.format(
+                            box_name,
+                            var_name),
+                        self.system.boxes[box_name].variables[var_name].mass)
+            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+
+            for box_name, box in self.system.boxes.items():
+                # Write changes to box objects
+                box.fluid.mass += m_change[box.id] * m_units
+
+                # Save mass to Solution instance
+                sol.ts[box_name]['mass'].append(box.fluid.mass)
+
+                for var_name, var in box.variables.items():
+
+                    dprint('__________________________________')
+                    dprint('$$$$$$1111self.boxes[{}].variables[{}].mass: '.format(
+                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
+                    dprint('box_name: ', box_name)
+                    dprint(var_name + ':')
+                    dprint(var_changes[var_name][box.id])
+                    dprint(var_units[var_name])
+
+                    dprint('@@@@ : ', var_changes[var_name][box.id])
+                    dprint('@@@@ : ', var_units[var_name])
+                    dprint(
+                        '@@@@ : ',
+                        self.system.boxes[box_name].variables[var_name].mass)
+
+                    new_var_mass = var_changes[var_name][box.id] * var_units[var_name] + \
+                        self.system.boxes[box_name].variables[var_name].mass
+
+                    dprint('@@@@ : ', new_var_mass)
+                    dprint(box_name, var_name)
+                    self.system.boxes[box_name].variables[var_name].mass = new_var_mass
+
+                    sol.ts[box_name][var_name].append(
+                        self.system.boxes[box_name].variables[var_name].mass)
+
+                    self.system.mm.loc[box_name, var_name] = new_var_mass
+                    if box.fluid.mass.magnitude > 0:
+                        self.system.cm.loc[box_name,
+                                           var_name] = new_var_mass / box.fluid.mass
+                    else:
+                        self.system.cm.loc[box_name, var_name] = 0
+
+                    dprint('$$$$$$2222self.boxes[{}].variables[{}].mass: '.format(
+                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
+            time += dt
+
+            dprint('----> mm: ', self.system.mm)
+            dprint('----> sum(mm): ', self.system.mm.sum())
+            a = dinput('(End of timestep loop) Wait for it...')
+
+        # End Time of Function
+        end_time = time_module.time()
+        print(
+            'Function "solve(...)" used {:3.3f}s'.format(
+                end_time - start_time))
+
+        return sol
+
+    # HELPER functions
+
     def _calculate_mass_flows(self, time, dt):
         """Calculate mass changes of every box.
 
@@ -71,18 +244,18 @@ class Solver:
         # f is the reduction coefficent of the "sink-flows" of each box
         # scaling factor for sinks of each box
         f = np.ones(self.system.N_boxes)
-        v1 = np.ones(self.syste.N_boxes)
+        v1 = np.ones(self.system.N_boxes)
 
-        m_init = self.system.get_fluid_mass_1Darray()
+        m_ini = self.system.get_fluid_mass_1Darray()
 
         # get internal flow matrix and calculate the internal souce and sink 
         # vectors. Also get the external sink and source vector
-        A = self.system.get_fluid_mass_internal_flow_2Darray()
+        A = self.system.get_fluid_mass_internal_flow_2Darray(time)
         # internal 
         s_i = bs_utils.dot(A, v1)
         q_i = bs_utils.dot(A.T, v1)
-        s_e = self.system.get_fluid_mass_flow_sink_1Darray()
-        q_e = self.system.get_fluid_mass_flow_source_1Darray()
+        s_e = self.system.get_fluid_mass_flow_sink_1Darray(time)
+        q_e = self.system.get_fluid_mass_flow_source_1Darray(time)
 
 
         # calculate first estimate of mass change vector
@@ -90,7 +263,7 @@ class Solver:
         # calculate first estimate of mass after timestep
         m = m_ini + dm
 
-        while np.any(m < 0):
+        while np.any(m.magnitude < 0):
             argmin = np.argmin(m)
             # Calculate net sink and source and mass of the 'empty' box.
             net_source = q_e[argmin] + q_i[argmin]
@@ -369,176 +542,3 @@ class Solver:
     def _calculate_reaction_variable_changes(self):
         pass
 
-    def solve_flows(self, total_integration_time, dt, debug=True):
-        # pdb.set_trace()
-
-        print('Start solving the flows of the box model...')
-        print('- total integration time: {}'.format(total_integration_time))
-        print('- dt (time step): {}'.format(dt))
-
-        # Get number of time steps - round up if there is a remainder
-        N_time_steps = math.ceil(total_integration_time / dt)
-        time = total_integration_time * 0
-
-        # Start time of function
-        start_time = time_module.time()
-
-        sol = solution.Solution(total_integration_time, dt, 
-                self.system.box_list)
-
-        progress = 0
-        for i in range(N_time_steps):
-            progress_old = progress
-            progress = round(float(i) / float(N_time_steps), 1) * 100.0
-            if progress != progress_old:
-                dprint("{}%".format(progress))
-            #dprint('Time: {}'.format(time.to(dt.units).round()))
-            sol.time.append(time)
-
-            m_changes, m_units, A = self._calculate_mass_flows(time, dt)
-
-            for box_name, box in self.system.boxes.items():
-                # Write changes to box objects
-                box.fluid.mass += m_changes[box.ID] * m_units
-
-                # Save volumes to Solution instance
-                sol.ts[box_name]['mass'].append(box.fluid.mass)
-
-            time += dt
-
-            a = dinput('Wait for it...')
-
-        # End Time of Function
-        end_time = time_module.time()
-        print(
-            'Function "solve_flows(...)" used {:3.3f}s'.format(
-                end_time - start_time))
-
-        return sol
-
-    def solve(self, total_integration_time, dt, debug=True):
-        global DEBUG
-        DEBUG = debug
-
-        print('Start solving the box model...')
-        print('- integration time: {}'.format(total_integration_time))
-        print('- time step: {}'.format(dt))
-
-        dprint('----> mm: ', self.system.mm)
-        dprint('----> sum(mm): ', self.system.mm.sum())
-
-        # Start time of function
-        start_time = time_module.time()
-
-        # Get number of time steps - round up if there is a remainder
-        N_time_steps = int(total_integration_time / dt)
-        time = total_integration_time * 0
-
-        sol = solution.Solution(
-            total_integration_time, dt, self.system.box_list)
-
-        progress = 0
-        for i in range(N_time_steps):
-            progress_old = progress
-            progress = round(float(i) / float(N_time_steps), 1) * 100.0
-            if progress != progress_old:
-                print("{}%".format(progress))
-            dprint('Time: {}'.format(time))
-            sol.time.append(time)
-            if time.magnitude > 140:
-                #DEBUG = True
-                # pdb.set_trace()
-                pass
-
-            ##################################################
-            # Calculate Mass fluxes
-            ##################################################
-
-            m_change, m_units, A = self._calculate_mass_flows(time, dt)
-
-            ##################################################
-            # Calculate Variable changes due to PROCESSES,
-            # REACTIONS, FUXES and finally due to the FLOWS
-            ##################################################
-
-            var_changes = {}
-            var_units = {}
-
-            for var_name, var in self.system.variables.items():
-                dprint('\n\n\n\n\nSOLVE for variable {}'.format(var_name))
-                var_changes[var_name] = self._calculate_changes_of_variable(
-                    time, dt, var, A)
-
-            dprint('var_changes: {}'.format(var_changes))
-            dprint('var_units: {}'.format(var_units))
-
-            ##################################################
-            # Apply changes to Boxes and save values to
-            # Solution instance
-            ##################################################
-
-            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-            for box_name, box in self.system.boxes.items():
-                for var_name, var in box.variables.items():
-                    dprint(
-                        '1111self.boxes[{}].variables[{}].mass: '.format(
-                            box_name,
-                            var_name),
-                        self.system.boxes[box_name].variables[var_name].mass)
-            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-
-            for box_name, box in self.system.boxes.items():
-                # Write changes to box objects
-                box.fluid.mass += m_change[box.ID] * m_units
-
-                # Save mass to Solution instance
-                sol.ts[box_name]['mass'].append(box.fluid.mass)
-
-                for var_name, var in box.variables.items():
-
-                    dprint('__________________________________')
-                    dprint('$$$$$$1111self.boxes[{}].variables[{}].mass: '.format(
-                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
-                    dprint('box_name: ', box_name)
-                    dprint(var_name + ':')
-                    dprint(var_changes[var_name][box.ID])
-                    dprint(var_units[var_name])
-
-                    dprint('@@@@ : ', var_changes[var_name][box.ID])
-                    dprint('@@@@ : ', var_units[var_name])
-                    dprint(
-                        '@@@@ : ',
-                        self.system.boxes[box_name].variables[var_name].mass)
-
-                    new_var_mass = var_changes[var_name][box.ID] * var_units[var_name] + \
-                        self.system.boxes[box_name].variables[var_name].mass
-
-                    dprint('@@@@ : ', new_var_mass)
-                    dprint(box_name, var_name)
-                    self.system.boxes[box_name].variables[var_name].mass = new_var_mass
-
-                    sol.ts[box_name][var_name].append(
-                        self.system.boxes[box_name].variables[var_name].mass)
-
-                    self.system.mm.loc[box_name, var_name] = new_var_mass
-                    if box.fluid.mass.magnitude > 0:
-                        self.system.cm.loc[box_name,
-                                           var_name] = new_var_mass / box.fluid.mass
-                    else:
-                        self.system.cm.loc[box_name, var_name] = 0
-
-                    dprint('$$$$$$2222self.boxes[{}].variables[{}].mass: '.format(
-                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
-            time += dt
-
-            dprint('----> mm: ', self.system.mm)
-            dprint('----> sum(mm): ', self.system.mm.sum())
-            a = dinput('(End of timestep loop) Wait for it...')
-
-        # End Time of Function
-        end_time = time_module.time()
-        print(
-            'Function "solve(...)" used {:3.3f}s'.format(
-                end_time - start_time))
-
-        return sol

@@ -12,7 +12,6 @@ from unittest import TestCase
 import os
 import sys
 import copy
-import pandas as pd
 import numpy as np
 import datetime
 import math
@@ -36,13 +35,14 @@ from boxsimu import utils
 from boxsimu.simulations import boxmodelsystem3
 
 
-class BoxModelSystem1Test(TestCase):
+class BoxModelSystem3Test(TestCase):
     """Test boxsimu framework using an intermediate complex box model."""
 
     def setUp(self, *args, **kwargs):
         self.system = boxmodelsystem3.get_system(ur)
         self.solver = Solver(self.system)
         self.box1 = self.system.boxes.box1
+        self.box2 = self.system.boxes.box2
 
         self.A = self.system.variables.A
         self.B = self.system.variables.B
@@ -53,6 +53,7 @@ class BoxModelSystem1Test(TestCase):
        del(self.system)
        del(self.solver)
        del(self.box1)
+       del(self.box2)
 
        del(self.A)
        del(self.B)
@@ -79,11 +80,15 @@ class BoxModelSystem1Test(TestCase):
     
     def test_mass(self):
         self.assertEqual(self.box1.mass, 1e5*ur.kg + 6*ur.kg)
+        self.assertEqual(self.box2.mass, 1e5*ur.kg + 2*ur.kg)
 
     def test_volume(self):
         box1_context = self.system.get_box_context(self.box1)
+        box2_context = self.system.get_box_context(self.box2)
 
         self.assertEqual(self.box1.get_volume(box1_context),
+                1e5/1000 * ur.meter**3)
+        self.assertEqual(self.box2.get_volume(box1_context),
                 1e5/1000 * ur.meter**3)
 
     def test_concentration(self):
@@ -95,6 +100,7 @@ class BoxModelSystem1Test(TestCase):
     
     def test_box_id(self):
         self.assertEqual(self.box1.id, 0)
+        self.assertEqual(self.box2.id, 1)
 
     def test_variable_id(self):
         self.assertEqual(self.A.id, 0)
@@ -103,7 +109,7 @@ class BoxModelSystem1Test(TestCase):
         self.assertEqual(self.D.id, 3)
 
     def test_N_boxes(self):
-        self.assertEqual(self.system.N_boxes, 1)
+        self.assertEqual(self.system.N_boxes, 2)
     
     def test_N_variables(self):
         self.assertEqual(self.system.N_variables, 4)
@@ -111,10 +117,12 @@ class BoxModelSystem1Test(TestCase):
     def test_context_of_box(self):
         global_context = self.system.get_box_context()
         box1_context = self.system.get_box_context(self.box1)
+        box2_context = self.system.get_box_context(self.box2)
         
         # Test accessability of the condition attributes
         self.assertEqual(global_context.T, 295 * ur.kelvin)
         self.assertEqual(box1_context.T, 290 * ur.kelvin)
+        self.assertEqual(box2_context.T, 300 * ur.kelvin)
 
         # Test the accessability of the condition attributes of other boxes:
         self.assertEqual(global_context.box1.condition.T, 
@@ -125,10 +133,12 @@ class BoxModelSystem1Test(TestCase):
     def test_context_evaluation_lambda_func(self):
         global_context = self.system.get_box_context()
         box1_context = self.system.get_box_context(self.box1)
+        box2_context = self.system.get_box_context(self.box2)
 
         lambda1 = lambda t, c: c.T / (100*ur.kelvin)
         self.assertEqual(lambda1(0*ur.second, global_context), 2.95)
         self.assertEqual(lambda1(0*ur.second, box1_context), 2.90)
+        self.assertEqual(lambda1(0*ur.second, box2_context), 3.00)
 
 
     #####################################################
@@ -138,19 +148,24 @@ class BoxModelSystem1Test(TestCase):
     def test_fluid_mass_1Dlist_1Darray(self):
         m = self.system.get_fluid_mass_1Darray()
         self.assertEqual(m[self.box1.id], 1e5 * ur.kg)
+        self.assertEqual(m[self.box2.id], 1e5 * ur.kg)
 
     def test_variable_mass_1Darray(self):
         m = self.system.get_variable_mass_1Darray(self.A)
         self.assertEqual(m[self.box1.id], 3 * ur.kg)
+        self.assertEqual(m[self.box2.id], 1 * ur.kg)
 
         m = self.system.get_variable_mass_1Darray(self.B)
         self.assertEqual(m[self.box1.id], 3 * ur.kg)
+        self.assertEqual(m[self.box2.id], 1 * ur.kg)
         
         m = self.system.get_variable_mass_1Darray(self.C)
         self.assertEqual(m[self.box1.id], 0 * ur.kg)
+        self.assertEqual(m[self.box2.id], 0 * ur.kg)
 
         m = self.system.get_variable_mass_1Darray(self.D)
         self.assertEqual(m[self.box1.id], 0 * ur.kg)
+        self.assertEqual(m[self.box2.id], 0 * ur.kg)
 
     def test_variable_concentration_1Darray(self):
         def _c(var_mass, fluid_mass):
@@ -158,12 +173,16 @@ class BoxModelSystem1Test(TestCase):
 
         c = self.system.get_variable_concentration_1Darray(self.A)
         self.assertAlmostEqual(c[self.box1.id], _c(3, 1e5))
+        self.assertAlmostEqual(c[self.box2.id], _c(1, 1e5))
         c = self.system.get_variable_concentration_1Darray(self.B)
         self.assertAlmostEqual(c[self.box1.id], _c(3, 1e5))
+        self.assertAlmostEqual(c[self.box2.id], _c(1, 1e5))
         c = self.system.get_variable_concentration_1Darray(self.C)
         self.assertAlmostEqual(c[self.box1.id], _c(0, 1e5))
+        self.assertAlmostEqual(c[self.box2.id], _c(0, 1e5))
         c = self.system.get_variable_concentration_1Darray(self.D)
         self.assertAlmostEqual(c[self.box1.id], _c(0, 1e5))
+        self.assertAlmostEqual(c[self.box2.id], _c(0, 1e5))
 
     #####################################################
     # Mass Flow Vectors/Matrices
@@ -172,15 +191,24 @@ class BoxModelSystem1Test(TestCase):
     def test_fluid_mass_internal_flow_2Darray(self):
         A = self.system.get_fluid_mass_internal_flow_2Darray(0*ur.second)
         # Check that diagonal elements are zero
-        self.assertPintQuantityAlmostEqual(A[0, 0], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box1.id, self.box1.id], 
+                0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box2.id, self.box2.id], 
+                0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box1.id, self.box2.id], 
+                1e3*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box2.id, self.box1.id], 
+                0*ur.kg/ur.year)
 
     def test_fluid_mass_flow_sink_1Darray(self):
         s = self.system.get_fluid_mass_flow_sink_1Darray(0*ur.second)
-        self.assertPintQuantityAlmostEqual(s[self.box1.id], 1e3*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(s[self.box2.id], 1e3*ur.kg/ur.year)
 
     def test_fluid_mass_flow_source_1Darray(self):
         q = self.system.get_fluid_mass_flow_source_1Darray(0*ur.second)
         self.assertPintQuantityAlmostEqual(q[self.box1.id], 1e3*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
     #####################################################
     # Variable Sink/Source Vectors
@@ -188,21 +216,42 @@ class BoxModelSystem1Test(TestCase):
 
     def test_variable_internal_flow_2Darray(self):
         f_flow = np.ones(self.system.N_boxes)
+
         A = self.system.get_variable_internal_flow_2Darray(
                 self.A, 0*ur.second, f_flow)
-        self.assertEqual(A[0, 0], 0*ur.kg/ur.year)
+        c = self.system.get_variable_concentration_1Darray(self.A)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box1.id, self.box2.id], 
+                c[self.box1.id] * 1e3*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
         A = self.system.get_variable_internal_flow_2Darray(
                 self.B, 0*ur.second, f_flow)
-        self.assertEqual(A[0, 0], 0*ur.kg/ur.year)
+        c = self.system.get_variable_concentration_1Darray(self.B)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(A[self.box1.id, self.box2.id], 
+                c[self.box1.id] * 1e3*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
         A = self.system.get_variable_internal_flow_2Darray(
                 self.C, 0*ur.second, f_flow)
-        self.assertEqual(A[0, 0], 0*ur.kg/ur.year)
+        c = self.system.get_variable_concentration_1Darray(self.C)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 
+                c[self.box1.id] * 1e3*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
+        # Important: D is not transported since the conditions in 
+        # box1 make it non-mobile!
         A = self.system.get_variable_internal_flow_2Darray(
                 self.D, 0*ur.second, f_flow)
-        self.assertEqual(A[0, 0], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
     def test_variable_flow_sink_1Darray(self):
         f_flow = np.ones(self.system.N_boxes)
@@ -210,26 +259,31 @@ class BoxModelSystem1Test(TestCase):
         s = self.system.get_variable_flow_sink_1Darray(self.A, 
                 0*ur.second, f_flow)
         c = self.system.get_variable_concentration_1Darray(self.A)
-        self.assertPintQuantityAlmostEqual(s[self.box1.id], 
-                1e3 * ur.kg/ur.year * c[self.box1.id])
+        self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(s[self.box2.id], 
+                1e3 * ur.kg/ur.year * c[self.box2.id])
 
         s = self.system.get_variable_flow_sink_1Darray(self.B, 
                 0*ur.second, f_flow)
         c = self.system.get_variable_concentration_1Darray(self.B)
-        self.assertPintQuantityAlmostEqual(s[self.box1.id], 
-                1e3 * ur.kg/ur.year * c[self.box1.id])
+        self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertPintQuantityAlmostEqual(s[self.box2.id], 
+                1e3 * ur.kg/ur.year * c[self.box2.id])
 
         s = self.system.get_variable_flow_sink_1Darray(self.C, 
                 0*ur.second, f_flow)
         c = self.system.get_variable_concentration_1Darray(self.C)
-        self.assertEqual(s[self.box1.id], 
-                1e3 * ur.kg/ur.year * c[self.box1.id])
+        self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 
+                1e3 * ur.kg/ur.year * c[self.box2.id])
 
-        s = self.system.get_variable_flow_sink_1Darray(self.C, 
+        # Important: D is not transported since the conditions in 
+        # box1 make it non-mobile!
+        s = self.system.get_variable_flow_sink_1Darray(self.D, 
                 0*ur.second, f_flow)
-        c = self.system.get_variable_concentration_1Darray(self.C)
-        self.assertEqual(s[self.box1.id], 
-                1e3 * ur.kg/ur.year * c[self.box1.id])
+        c = self.system.get_variable_concentration_1Darray(self.D)
+        self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 0*ur.kg/ur.year)
 
     def test_variable_flow_source_1Darray(self):
         box1_input_concentration = {self.A: 1*ur.gram/ur.kg,
@@ -238,101 +292,133 @@ class BoxModelSystem1Test(TestCase):
         q = self.system.get_variable_flow_source_1Darray(self.A, 0*ur.second)
         self.assertEqual(q[self.box1.id], 
                  1e3 * ur.kg/ur.year * box1_input_concentration[self.A])
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_flow_source_1Darray(self.B, 0*ur.second)
         self.assertEqual(q[self.box1.id], 
                  1e3 * ur.kg/ur.year * box1_input_concentration[self.B])
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_flow_source_1Darray(self.C, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_flow_source_1Darray(self.D, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
     def test_variable_process_sink_1Darray(self):
         s = self.system.get_variable_process_sink_1Darray(
                 self.A, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 0*ur.kg/ur.year)
 
         s = self.system.get_variable_process_sink_1Darray(
                 self.B, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 0*ur.kg/ur.year)
 
         s = self.system.get_variable_process_sink_1Darray(
                 self.C, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 0*ur.kg/ur.year)
 
         s = self.system.get_variable_process_sink_1Darray(
                 self.D, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(s[self.box2.id], 0*ur.kg/ur.year)
 
     def test_variable_process_source_1Darray(self):
         q = self.system.get_variable_process_source_1Darray(
                 self.A, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_process_source_1Darray(
                 self.B, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_process_source_1Darray(
                 self.C, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
         q = self.system.get_variable_process_source_1Darray(
                 self.D, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(q[self.box2.id], 0*ur.kg/ur.year)
 
     def test_variable_internal_flux_2Darray(self):
         A = self.system.get_variable_internal_flux_2Darray(
                 self.A, 0*ur.second)
-        self.assertEqual(A[0, 0], 0 * ur.kg / ur.year)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
         A = self.system.get_variable_internal_flux_2Darray(
                 self.B, 0*ur.second)
-        self.assertEqual(A[0, 0], 0 * ur.kg / ur.year)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
         A = self.system.get_variable_internal_flux_2Darray(
                 self.C, 0*ur.second)
-        self.assertEqual(A[0, 0], 0 * ur.kg / ur.year)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
         A = self.system.get_variable_internal_flux_2Darray(
                 self.D, 0*ur.second)
-        self.assertEqual(A[0, 0], 0 * ur.kg / ur.year)
+        self.assertEqual(A[self.box1.id, self.box1.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box1.id, self.box2.id], 0*ur.kg/ur.year)
+        self.assertEqual(A[self.box2.id, self.box1.id], 0*ur.kg/ur.year)
 
     def test_variable_flux_sink_1Darray(self):
         s = self.system.get_variable_flux_sink_1Darray(
                 self.A, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(s[self.box2.id], 0 * ur.kg / ur.year)
 
         s = self.system.get_variable_flux_sink_1Darray(
                 self.B, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(s[self.box2.id], 0 * ur.kg / ur.year)
 
         s = self.system.get_variable_flux_sink_1Darray(
                 self.C, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(s[self.box2.id], 0 * ur.kg / ur.year)
 
         s = self.system.get_variable_flux_sink_1Darray(
                 self.D, 0*ur.second)
         self.assertEqual(s[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(s[self.box2.id], 0 * ur.kg / ur.year)
 
     def test_variable_flux_source_1Darray(self):
         q = self.system.get_variable_flux_source_1Darray(
                 self.A, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0 * ur.kg / ur.year)
 
         q = self.system.get_variable_flux_source_1Darray(
                 self.B, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0 * ur.kg / ur.year)
 
         q = self.system.get_variable_flux_source_1Darray(
                 self.C, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0 * ur.kg / ur.year)
 
         q = self.system.get_variable_flux_source_1Darray(
                 self.D, 0*ur.second)
         self.assertEqual(q[self.box1.id], 0 * ur.kg / ur.year)
+        self.assertEqual(q[self.box2.id], 0 * ur.kg / ur.year)
 
     def test_reaction_rate_cube(self):
         C = self.system.get_reaction_rate_3Darray(
@@ -348,23 +434,23 @@ class BoxModelSystem1Test(TestCase):
         reaction1_id = 0
         reaction2_id = 1
         
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.A.id, reaction1_id], 
-                -rr_1*3)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.B.id, reaction1_id], 
-                -rr_1*5)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction1_id], 
-                rr_1*2)
-        self.assertEqual(C[self.box1.id, self.D.id, reaction1_id], 
-                rr_1*0)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.A.id, reaction1_id], -rr_1*3)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.B.id, reaction1_id], -rr_1*5)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.C.id, reaction1_id], rr_1*2)
+        self.assertEqual(
+                C[self.box1.id, self.D.id, reaction1_id], rr_1*0)
 
-        self.assertEqual(C[self.box1.id, self.A.id, reaction2_id], 
-                rr_2*0)
-        self.assertEqual(C[self.box1.id, self.B.id, reaction2_id], 
-                rr_2*0)
-        self.assertEqual(C[self.box1.id, self.C.id, reaction2_id], 
-                -rr_2*1)
-        self.assertEqual(C[self.box1.id, self.D.id, reaction2_id], 
-                rr_2*1)
+        self.assertEqual(
+                C[self.box1.id, self.A.id, reaction2_id], rr_2*0)
+        self.assertEqual(
+                C[self.box1.id, self.B.id, reaction2_id], rr_2*0)
+        self.assertEqual(
+                C[self.box1.id, self.C.id, reaction2_id], -rr_2*1)
+        self.assertEqual(
+                C[self.box1.id, self.D.id, reaction2_id], rr_2*1)
 
         self.system.boxes.box1.variables.C.mass = 10 * ur.kg
         C = self.system.get_reaction_rate_3Darray(
@@ -377,23 +463,23 @@ class BoxModelSystem1Test(TestCase):
         reaction1_id = 0
         reaction2_id = 1
         
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.A.id, reaction1_id], 
-                -rr_1*3)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.B.id, reaction1_id], 
-                -rr_1*5)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction1_id], 
-                rr_1*2)
-        self.assertEqual(C[self.box1.id, self.D.id, reaction1_id], 
-                rr_1*0)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.A.id, reaction1_id], -rr_1*3)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.B.id, reaction1_id], -rr_1*5)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.C.id, reaction1_id], rr_1*2)
+        self.assertEqual(
+                C[self.box1.id, self.D.id, reaction1_id], rr_1*0)
 
-        self.assertEqual(C[self.box1.id, self.A.id, reaction2_id], 
-                rr_2*0)
-        self.assertEqual(C[self.box1.id, self.B.id, reaction2_id], 
-                rr_2*0)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.C.id, reaction2_id], 
-                -rr_2*1)
-        self.assertPintQuantityAlmostEqual(C[self.box1.id, self.D.id, reaction2_id], 
-                rr_2*1)
+        self.assertEqual(
+                C[self.box1.id, self.A.id, reaction2_id], rr_2*0)
+        self.assertEqual(
+                C[self.box1.id, self.B.id, reaction2_id], rr_2*0)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.C.id, reaction2_id], -rr_2*1)
+        self.assertPintQuantityAlmostEqual(
+                C[self.box1.id, self.D.id, reaction2_id], rr_2*1)
 
 if __name__ == "__main__": 
     unittest.main()

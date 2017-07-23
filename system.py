@@ -12,7 +12,6 @@ import random
 import copy
 import time as time_module
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 from pint.errors import DimensionalityError
@@ -59,7 +58,8 @@ class BoxModelSystem:
 
     """
 
-    def __init__(self, name, boxes, global_condition=None, fluxes=None, flows=None):
+    def __init__(self, name, boxes, global_condition=None, fluxes=None, 
+            flows=None):
         if not len(boxes) > 0:
             raise ValueError('At least one box must be given!')
         
@@ -76,6 +76,17 @@ class BoxModelSystem:
         self.boxes = AttrDict(box_dict)
 
         self.init_system()
+
+        # Check if all source and target boxes of flows/fluxes were added
+        flow_boxes = bs_transport.Flow.get_all_source_and_target_boxes(
+                self.flows)
+        flux_boxes = bs_transport.Flux.get_all_source_and_target_boxes(
+                self.fluxes)
+        flow_flux_boxes = flow_boxes + flux_boxes
+        for b in flow_flux_boxes:
+            if b not in self.box_list:
+                raise ValueError('All boxes that are sources or targets '
+                        'of flows or fluxes must be added to the system.')
 
     def init_system(self): 
         """Define all variables in all boxes and set variable and box ids.
@@ -175,29 +186,6 @@ class BoxModelSystem:
         return len(self.variables)
 
     @property
-    def mm(self):
-        df = pd.DataFrame(
-            columns=self.variables.keys(),
-            index=self.boxes.keys())
-        for box_name, box in self.boxes.items():
-            for var_name, var in box.variables.items():
-                df.loc[box_name, var_name] = var.mass
-        return df
-
-    @property
-    def cm(self):
-        df = pd.DataFrame(
-            columns=self.variables.keys(),
-            index=self.boxes.keys())
-        for box_name, box in self.boxes.items():
-            for var_name, var in box.variables.items():
-                if box.fluid.mass > 0:
-                    df.loc[box_name, var_name] = var.mass / box.fluid.mass
-                else:
-                    df.loc[box_name, var_name] = 0
-        return df
-
-    @property
     def pint_ur(self):
         pint_ur = None
 
@@ -245,6 +233,23 @@ class BoxModelSystem:
     def get_global_context(self):
         return self.get_box_context()
 
+    def get_variable_mobility_bool_1Darray(self, variable, time):
+        """Return mobility (True, False) of the variable in every box."""
+        mobility = np.zeros(self.N_boxes)
+        for box_name, box in self.boxes.items():
+            box_context = self.get_box_context(box)
+            mobility[box.id] = variable.is_mobile(time, box_context)
+        return mobility
+
+    def get_variable_mobility_numeric_1Darray(self, variable, time):
+        """Return mobility (0,1) of the variable in every box."""
+        mobility = np.zeros(self.N_boxes)
+        mobility_bool = self.get_variable_mobility_bool_1Darray(variable, 
+                time)
+        for i, x in enumerate(mobility_bool):
+            mobility[i] = 1 if x else 0
+        return mobility
+
     #####################################################
     # Fluid and Variable Mass/Concentration Vectors/Matrices
     #####################################################
@@ -260,13 +265,8 @@ class BoxModelSystem:
             units.append(fluid_mass.units)
             m[box.id] = fluid_mass.magnitude
         
-        units_set = set(units)
-        if len(units_set) == 1:
-            m_units = units_set.pop()
-        elif len(units_set) == 0:
-            m_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        default_units = self.pint_ur.kg
+        m_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return m * m_units
 
     def get_variable_mass_1Darray(self, variable):
@@ -286,13 +286,8 @@ class BoxModelSystem:
             units.append(variable_mass.units)
             m[box.id] = variable_mass.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            m_units = units_set.pop()
-        elif len(units_set) == 0:
-            m_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        default_units = self.pint_ur.kg
+        m_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return m * m_units
 
     def get_variable_concentration_1Darray(self, variable):
@@ -316,14 +311,29 @@ class BoxModelSystem:
             units.append(concentration.units)
             c[box.id] = concentration.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            c_units = units_set.pop()
-        elif len(units_set) == 0:
-            c_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        default_units = self.pint_ur.dimensionless
+        c_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return c * c_units
+
+    def get_variable_flow_concentration_1Darray(self, variable, time):
+        """Return the concentration within the ouflow from a box.
+        
+        The concentration is basically the same as in the box. However,
+        if a variable is not mobile it can be altered.
+        
+        Args:
+            variable (Variable): Variable of which the sink vector should be 
+                returned.
+            time (pint.Quantity [T]): Time at which the flows shall be 
+                evaluated.
+
+        """
+        concentration = self.get_variable_concentration_1Darray(variable)
+        flow_concentration = (concentration * 
+                self.get_variable_mobility_numeric_1Darray(variable, time))
+
+        return flow_concentration
+
 
     #####################################################
     # Mass Flow Vectors/Matrices
@@ -359,13 +369,8 @@ class BoxModelSystem:
             A[flow.source_box.id, flow.target_box.id] += \
                     fluid_flow_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            A_units = units_set.pop()
-        elif len(units_set) == 0:
-            A_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        A_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return A * A_units
 
     def get_fluid_mass_flow_sink_1Darray(self, time, flows=None):
@@ -395,13 +400,8 @@ class BoxModelSystem:
             units.append(fluid_flow_rate.units)
             s[flow.source_box.id] += fluid_flow_rate.magnitude
 
-        units_set = set(units)
-        if len(units_set) == 1:
-            s_units = units_set.pop()
-        elif len(units_set) == 0:
-            s_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        s_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return s * s_units
 
     def get_fluid_mass_flow_source_1Darray(self, time, flows=None):
@@ -430,30 +430,15 @@ class BoxModelSystem:
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             q[flow.target_box.id] += fluid_flow_rate.magnitude
-
-        units_set = set(units)
-        if len(units_set) == 1:
-            q_units = units_set.pop()
-        elif len(units_set) == 0:
-            q_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
+        
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        q_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return q * q_units
 
     #####################################################
     # Variable Sink/Source Vectors/Matrices
     #####################################################
 
-    def _check_mass_rate_units(self, units):
-        """Check list of pint units if they are mass rates."""
-        units_set = set(units)
-        if len(units_set) == 1:
-            res_units = units_set.pop()
-        elif len(units_set) == 0:
-            res_units = self.pint_ur.kg / self.pint_ur.second
-        else:
-            raise DimensionalityError(units_set.pop(), units_set.pop())
-        return res_units
 
     # FLOW
 
@@ -482,6 +467,9 @@ class BoxModelSystem:
         A = np.zeros([self.N_boxes, self.N_boxes])
         flows = flows or self.flows
 
+        flow_concentrations = self.get_variable_flow_concentration_1Darray(
+                variable, time)
+
         units = []
         for flow in flows:
             if flow.source_box is None or flow.target_box is None:
@@ -489,7 +477,7 @@ class BoxModelSystem:
             src_box_context = self.get_box_context(flow.source_box)
             fluid_flow_rate = flow(time, src_box_context).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
-            concentration = flow.source_box.get_concentration(variable)
+            concentration = flow_concentrations[flow.source_box.id]
             bs_dim_val.raise_if_not_dimless(concentration)
 
             variable_flow_rate = (fluid_flow_rate *
@@ -499,7 +487,8 @@ class BoxModelSystem:
             A[flow.source_box.id, flow.target_box.id] += \
                     variable_flow_rate.magnitude
 
-        A_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        A_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return A * A_units
 
     def get_variable_flow_sink_1Darray( self, variable, time, f_flow, 
@@ -530,10 +519,11 @@ class BoxModelSystem:
         flows = flows or self.flows
         flows = [flow for flow in bs_transport.Flow.get_all_to(None, flows) 
                     if flow.tracer_transport]
-        concentrations = self.get_variable_concentration_1Darray(variable)
         fluid_flow_rates = self.get_fluid_mass_flow_sink_1Darray(time, 
                 flows=flows) * f_flow
-        s = concentrations * fluid_flow_rates
+        concentration = self.get_variable_flow_concentration_1Darray(
+                variable, time)
+        s = concentration * fluid_flow_rates
         return s
 
     def get_variable_flow_source_1Darray(self, variable, time, flows=None): 
@@ -544,6 +534,12 @@ class BoxModelSystem:
         For every box all fluid mass flows that have variable
         concentrations specified are summed up and multiplied with the 
         corresponding variable concentration.
+
+        Note: Even if a Variable is specified as non-mobile, the 
+            variable is transported into the boxes according to their 
+            concentrations specified in the Flow definition! Therefore, 
+            if a variable should not be transported then the concentration
+            in the Flow definition has to be set to zero.
 
         Args:
             variable (Variable): Variable of which the sink vector should 
@@ -562,13 +558,15 @@ class BoxModelSystem:
 
         units = []
         for flow in bs_transport.Flow.get_all_from(None, variable_flows):
-            variable_flow_rate = (flow(time, self.get_global_context()) * 
+            global_context = self.get_global_context()
+            variable_flow_rate = (flow(time, global_context) * 
                     flow.concentrations[variable]).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(variable_flow_rate)
             units.append(variable_flow_rate.units)
             q[flow.target_box.id] += variable_flow_rate.magnitude
 
-        q_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        q_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return q * q_units
 
     # FLUX
@@ -608,7 +606,8 @@ class BoxModelSystem:
             units.append(flux_rate.units)
             A[flux.source_box.id, flux.target_box.id] += flux_rate.magnitude
 
-        A_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        A_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return A * A_units
 
     def get_variable_flux_sink_1Darray(self, variable, time, fluxes=None):
@@ -640,7 +639,8 @@ class BoxModelSystem:
             units.append(flux_rate.units)
             s[flux.source_box.id] += flux_rate.magnitude
 
-        s_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        s_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return s * s_units
 
     def get_variable_flux_source_1Darray(self, variable, time, fluxes=None):
@@ -672,7 +672,8 @@ class BoxModelSystem:
             units.append(flux_rate.units)
             q[flux.target_box.id] += flux_rate.magnitude
 
-        q_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        q_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return q * q_units
 
     # PROCESS
@@ -715,7 +716,8 @@ class BoxModelSystem:
             except AttributeError:
                 s[box.id] += sum(sink_rates)
 
-        s_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        s_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return s * s_units
 
     def get_variable_process_source_1Darray(self, variable, time, 
@@ -756,7 +758,8 @@ class BoxModelSystem:
             except AttributeError:
                 q[box.id] += sum(source_rates)
 
-        q_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        q_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return q * q_units
 
     # REACTION
@@ -776,7 +779,8 @@ class BoxModelSystem:
                 units.append(rate.units)
                 A[box.id, variable.id] = rate.magnitude
 
-        A_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        A_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return A * A_units
 
 
@@ -825,7 +829,8 @@ class BoxModelSystem:
             units.append(reaction_2Darray.units)
             C[i,:,:] = reaction_2Darray.magnitude 
 
-        C_units = self._check_mass_rate_units(units)
+        default_units = self.pint_ur.kg / self.pint_ur.second
+        C_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return np.moveaxis(C, 0, -1) * C_units
 
 

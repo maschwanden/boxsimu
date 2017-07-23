@@ -4,7 +4,7 @@ Created on Thu Jun 23 10:45:10 2016
 
 @author: aschi
 
-1 Box Model with 4 different Variables and 2 Reactions.
+2 Box Model with 4 different Variables and 2 Reactions.
 Variables: A, B, C
 Reactions:
     Reaction 1 : 3A + 5B -> 2C
@@ -14,7 +14,6 @@ Reactions:
 
 import sys
 import copy
-import pandas as pd
 import numpy as np
 import datetime
 
@@ -34,7 +33,9 @@ from boxsimu.solver import Solver
 from boxsimu import utils
 
 
-def get_system(ur):
+def get_system(ur=None):
+    if not ur: 
+        from boxsimu import ur
 
     #############################
     # FLUIDS
@@ -49,7 +50,8 @@ def get_system(ur):
     A = Variable('A')
     B = Variable('B')
     C = Variable('C')
-    D = Variable('D')
+    # Variable D is mobile solubale if the temperature is above 298K
+    D = Variable('D', mobility=lambda t,c: c.T > 298*ur.kelvin)
 
     #############################
     # REACTIONS
@@ -86,12 +88,20 @@ def get_system(ur):
         variables=[A.q(3*ur.kg), B.q(3*ur.kg)],
         reactions=[reaction1, reaction2],
     )
+    box2 = Box(
+        name='box2',
+        name_long='Box 2',
+        fluid=water.q(1e5*ur.kg), 
+        condition=Condition(T=300*ur.kelvin),
+        variables=[A.q(1*ur.kg), B.q(1*ur.kg)],
+        reactions=[reaction1, reaction2],
+    )
 
     #############################
     # FLOWS
     #############################
 
-    inflow = Flow(
+    inflow_box1 = Flow(
         name='Inflow', 
         source_box=None, 
         target_box=box1,
@@ -102,10 +112,18 @@ def get_system(ur):
             B: 2 * ur.gram / ur.kg,
         }
     )
-    
-    outflow = Flow(
-        name='Outflow',
+
+    flow_box1_to_box2 = Flow(
+        name='Inflow', 
         source_box=box1, 
+        target_box=box2,
+        rate=1e3*ur.kg/ur.year,
+        tracer_transport=True,
+    )
+    
+    outflow_box2 = Flow(
+        name='Outflow',
+        source_box=box2, 
         target_box=None,
         rate=1e3*ur.kg/ur.year, 
         tracer_transport=True,
@@ -117,8 +135,8 @@ def get_system(ur):
 
     bmsystem = BoxModelSystem(
             name='Test System', 
-            boxes=[box1],
-            flows=[inflow, outflow],
+            boxes=[box1, box2],
+            flows=[inflow_box1, flow_box1_to_box2, outflow_box2],
             global_condition=Condition(T=295*ur.kelvin),
     )
     return bmsystem

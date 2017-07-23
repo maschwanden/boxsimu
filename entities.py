@@ -20,12 +20,15 @@ class BaseEntity:
 
     Args:
         name (str): Human readable string describing the entity.
+        molar_mass (pint.Quantity): Molar mass of the variable.
         
     Attributes:
         name (str): Human readable string describing the entity.
         mass (pint.Quantity): Mass of the entity.  
         molar_mass (pint.Quantity): Molar mass of the variable.
+
     """
+
     def __init__(self, name, molar_mass=None):
         self.name = name
 
@@ -145,14 +148,24 @@ class Fluid(BaseEntity):
 class Variable(BaseEntity):
     """Tracer/Substance that is analysed.
 
+    Args:
+        name (str): Human readable string describing the entity.
+        mobility (boolean or function that returns boolean): Specifies 
+            whether the variable is mobile, and thus whether it is 
+            passively transported with fluid flows.
+
+
     Attributes (in addition to attributes from base class BaseEntity):
         id (int): Id of the variable in the system. Ids are assigned 
             alphabetically by the BoxModelSystem instance.
+        is_mobile (boolean): Specifies whether the variable is mobile, and
+            thus whether it is passively transported with fluid flows.
 
     """
 
-    def __init__(self, name, molar_mass=None):
+    def __init__(self, name, molar_mass=None, mobility=True):
         self.id = None
+        self.mobility = mobility
         super().__init__(name)
 
     @property
@@ -168,3 +181,11 @@ class Variable(BaseEntity):
             raise ValueError('Name must be a valid python expression!')
         self._name = value
 
+    def is_mobile(self, time, context):
+        mobile = self.mobility 
+        if callable(self.mobility):
+            mobile = self.mobility(time, context)
+        if not type(mobile) == bool:
+            raise ValueError('Variable.mobility expression must return bool.')
+        return mobile
+        

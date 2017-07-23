@@ -13,7 +13,6 @@ No other transports, fluxes, reactions, or processes are defined.
 
 import sys
 import copy
-import pandas as pd
 import numpy as np
 import datetime
 
@@ -31,7 +30,10 @@ from boxsimu import system
 from boxsimu import transport
 
 
-def get_system(ur):
+def get_system(ur=None):
+    if not ur:
+        from boxsimu import ur
+		
     V1 = 3e16
     V2 = 1e18
     FR = 3e13

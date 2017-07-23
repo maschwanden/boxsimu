@@ -146,3 +146,20 @@ class Reaction(BaseProcess):
         rate = rate.to_base_units()
         return var_coeff * rate
 
+    def get_reverse_reaction(self, name, rate=None):
+        """Return the reverse reaction of the instance.
+        
+        For example: If a reaction Photosynthesis is defined, the reverse 
+        reaction (remineralization) can be obtained by the following call:
+            photosynthesis.get_reverse_reaction(name='remineralization',
+                    rate=...)
+        
+        """
+        reverse_reaction = copy.deepcopy(self)
+        reverse_reaction.name = name
+        for variable, coeff in self.variable_reaction_coefficients.items():
+            reverse_reaction.variable_reaction_coefficients[variable] = -coeff
+        if rate:
+            reverse_reaction.rate = rate
+        return reverse_reaction
+

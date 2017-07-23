@@ -9,7 +9,6 @@ Created on Thu Jun 17 2017 at 12:07UTC
 import copy
 import time as time_module
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 
@@ -26,8 +25,7 @@ class Solution:
     Args:
         total_integration_time (pint.Quantity [T]): Total length of the simulation.
         dt (pint.Quantity [T]): Integration timestep. 
-        initial_system (BoxModelSystem): Initial state of the system that is 
-            simulated.
+        system (BoxModelSystem): System that is simulated.
     
     Attributes:
         total_integration_time (pint.Quantity): Total length of the simulation.
@@ -38,34 +36,31 @@ class Solution:
         time_units (pint.Units): Units of Quantities within the time attribute.
         time_magnitude (float): Magnitudes of Quantities within the time 
             attribute.
-        timeseries (AttrDict of AttrDict): For every box, there 
+        ts (AttrDict of AttrDict): For every box, there 
             exists one AttrDict which contains time series of all its 
             quantities (Fluid mass, Variable mass...) and the box instance.
             
     """
 
-    def __init__(self, total_integration_time, dt, initial_system):
-        bs_dim_val.dimensionality_check_time_err(total_integration_time)
-        bs_dim_val.dimensionality_check_time_err(dt)
+    def __init__(self, total_integration_time, dt, system):
+        bs_dim_val.raise_if_not_time(total_integration_time)
+        bs_dim_val.raise_if_not_time(dt)
 
         self.total_integration_time = total_integration_time
         self.dt = dt
         
-        if not isinstance(system, bs_system.BoxModelSystem):
-            raise ValueError('Parameter system must be instance of '
-                'BoxModelSystem!')
         self.system = copy.deepcopy(system)
 
         self.time = []
         self.time_units = None
         self.time_magnitude = None
         
-        self.timeseries = AttrDict()
+        self.ts = AttrDict()
         for box_name, box in self.system.boxes.items():
             tmp_dict = {'box': box, 'mass': [], 'volume': []}
             for variable_name, variable in self.system.variables.items():
                 tmp_dict[variable_name] = []
-            self.timeseries[box_name] = AttrDict(tmp_dict)
+            self.ts[box_name] = AttrDict(tmp_dict)
 
     def plot_fluid_masses(self, boxes=None, ):
         fig, ax = plt.subplots()
@@ -79,7 +74,7 @@ class Solution:
             masses = self.ts[box_name]['mass']
             mass_magnitude = [mass.magnitude for mass in masses]
             ax.plot(self.time_magnitude, mass_magnitude,
-                    label='Box {}'.format(ts.box.ID))
+                    label='Box {}'.format(ts.box.id))
 
         ax.set_ylabel('kg')
         ax.set_xlabel(self.time_units)

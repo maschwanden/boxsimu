@@ -30,9 +30,21 @@ def dot(a, b):
     Note: If numpy.dot is used the resulting array has no units anymore.
 
     """
-    a_units = a.units
-    b_units = b.units
-    return np.dot(a.magnitude, b.magnitude) * a_units * b_units
+    a_units = 1
+    b_units = 1
+    a_vec = a
+    b_vec = b
+    try:
+        a_units = a.units
+        a_vec = a.magnitude
+    except AttributeError:
+        pass
+    try:
+        b_units = b.units
+        b_vec = b.magnitude
+    except AttributeError:
+        pass
+    return np.dot(a_vec, b_vec) * a_units * b_units
 
 
 def get_valid_filename_from_string(string): 
@@ -43,4 +55,6 @@ def get_valid_filename_from_string(string):
 def get_valid_svg_id_from_string(string):
     tmp_str = str(string).strip().replace(' ', '_')
     return re.sub(r'(?u)[^-\w.]', '', tmp_str)        
+
+
 

@@ -8,8 +8,7 @@ reactions.
 Requirements:
 - numpy
 - matplotlib
-- pandas
-- pint 
+- pint
 - attrdict
 - svgwrite
 - PyYAML

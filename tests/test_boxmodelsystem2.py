@@ -13,7 +13,6 @@ import os
 import math
 import sys
 import copy
-import pandas as pd
 import numpy as np
 import datetime
 
@@ -36,7 +35,7 @@ from boxsimu import utils
 from boxsimu.simulations import boxmodelsystem2
 
 
-class BoxModelSystem1Test(TestCase):
+class BoxModelSystem2Test(TestCase):
     """Test boxsimu framework using an intermediate complex box model."""
 
     def setUp(self, *args, **kwargs):

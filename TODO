@@ -24,3 +24,7 @@ def mass(self, m):
 	bla bla bla bla
 -> TestCase.assertRaises : check that 
 -> if a UnitRegistry is used: Always use the instance that is instantiated within the __init__.py module of the boxsimu parents directory.
+
+
+
+-> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating in reactions etc....)

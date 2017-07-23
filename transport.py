@@ -70,38 +70,53 @@ class BaseTransport:
         return rate.to_base_units()
 
     @classmethod
-    def get_all_from(cls, source_box, flows):
-        """Return all instances that origin from source_box.
+    def get_all_from(cls, source_box, transports):
+        """Return all instances of transports that origin from source_box.
         
         Args:
             source_box (Box or None): Origin of the transports.
-            flows (list of Flow): Flows that whould be considered.
+            transports (list of BaseTransports): Transports that will 
+                be considered.
 
         """
         if source_box is None:
-            return [f for f in flows if f.source_box is None]
+            return [t for t in transports if t.source_box is None]
         elif isinstance(source_box, bs_box.Box):
-            return [f for f in [fb for fb in flows if fb.source_box]
-                    if f.source_box == source_box]
+            transports_with_src_box = [t for t in transports if t.source_box]
+            return [t for t in transports_with_src_box 
+                    if t.source_box == source_box]
         else:
             raise ValueError('{} is not a Box!'.format(source_box))
 
     @classmethod
-    def get_all_to(cls, target_box, flows):
-        """Return all instances that go to target_box.
+    def get_all_to(cls, target_box, transports):
+        """Return all instances of transports that go to target_box.
         
         Args:
             target_box (Box or None): Target of the transports.
-            flows (list of Flow): Flows that whould be considered.
+            transports (list of BaseTransports): Transports that will 
+                be considered.
 
         """
         if target_box is None:
-            return [f for f in flows if f.target_box is None]
+            return [t for t in transports if t.target_box is None]
         elif isinstance(target_box, bs_box.Box):
-            return [f for f in [fb for fb in flows if fb.target_box]
-                    if f.target_box == target_box]
+            transports_with_trg_box = [t for t in transports if t.target_box]
+            return [t for t in transports_with_trg_box 
+                    if t.target_box == target_box]
         else:
             raise ValueError('{} is not a Box!'.format(target_box))
+
+    @classmethod
+    def get_all_source_and_target_boxes(cls, transports):
+        """Return all boxes that are defined as a source or target."""
+        box_list = []
+        for t in transports:
+            if t.source_box is not None:
+                box_list.append(t.source_box)
+            if t.target_box is not None:
+                box_list.append(t.target_box)
+        return list(set(box_list))
 
 
 class Flow(BaseTransport):

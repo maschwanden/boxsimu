@@ -36,7 +36,6 @@ Phytoplankton is then produced from PO4 and NO3 by photosynthesis.
 
 import sys
 import copy
-import pandas as pd
 import numpy as np
 import datetime
 
@@ -56,7 +55,9 @@ from boxsimu.solver import Solver
 from boxsimu import utils
 
 
-def get_system(ur):
+def get_system(ur=None): 
+    if not ur: 
+        from boxsimu import ur
 
     #############################
     # FLUIDS

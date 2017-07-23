@@ -81,6 +81,9 @@ class Box:
         if len(variable_names) != len(set(variable_names)):
             raise ValueError('Variable names have to be unique!')
 
+    def __hash__(self):
+        return hash(repr(self))
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.name == other.name
