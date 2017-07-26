@@ -1,38 +1,3 @@
-TODO:
-
-  -> Write the Solver
-  -> Write general plotting interface within the Solution class
-  -> Reevaluate the project
-  
-
-- make interface with the rate lambda functions nicer: at the moment if the user wants to access the conditions of other boxes very long expressions have to be types: for example:  c.box_upper_ocean.cond.T 
-- incorporate processes and fluxes
-- incorporate reactions
-- make reactions stop if one of the educts is not available anymore
-- make gui
-- stability criterion for timesteps?!
-- Think about a way to calculate the timestep more efficient:
-  --> parallel computing?
-  --> cython?
-  --> C function?!
-
-NEW:
--> molar mass
--> setter methods for immutalbe attributes and for pint quantities of a certain dimension (for example for the mass: 
-@mass.setter
-def mass(self, m):
-	bla bla bla bla
--> TestCase.assertRaises : check that 
--> if a UnitRegistry is used: Always use the instance that is instantiated within the __init__.py module of the boxsimu parents directory.
-
-
-
--> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating in reactions etc....)
--> Maybe adjust timestep dynamically in the solver: if some conditions are met that could affect the quality of the simulation-> make the timestep half as large...
--> Gleichgewichts-reaktion: Reaction that can run in both directions depending on the concentration of educts and products (for this type a equilibrium constant K must be given)
-
-
-
 TODO stand 27.07.2017:
 -> Pickle boxsimu objects
 -> numba / cython to speed up the simulation time
@@ -40,3 +5,33 @@ TODO stand 27.07.2017:
 -> Logging functionality
 -> Write more built ins
 -> visualization of the system (flows and fluxes are not implemented now)
+-> Pyside Gui (or PyQt5)
+-> Are some parts solvable analytically? then some terms could be calculated much faster.
+-> What plots could be helpful? What analysis tools?
+-> Kinetic reactions -> with equilibrium constants
+-> 1D Boxes
+-> Parallel computing?
+-> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating in reactions etc....)
+-> Maybe adjust timestep dynamically in the solver: if some conditions are met that could affect the quality of the simulation-> make the timestep half as large...
+-> stability criterion for timesteps?!
+-> make interface with the rate lambda functions nicer
+-> Reevaluate the project: Is the scientific theory "correct"? Is the code consistent with this theory?
+-> Make concentration plots in addition to "pure" mass plots.
+-> Improve Validation of User input? Can a user insert some information somewhere that raises an Error?
+-> Validate the rate functions that a user gives.
+-> also write some info functions for the terminal
+-> improve the documentation of the function, classes and inline comments
+-> Write a real documentation pdf
+-> Write a interactive sphinx docu
+-> Load the project to Github
+-> Improve tests
+-> Write some Tutorial/Example jupyter notebooks
+-> Helper function that could facilitate the setup of a system for common cases.
+-> Make some critical assumtion that the programm meets changeable by the user by some System parameters or Solver parameters or global config parameters.
+-> Solver should solve the result to some file from time to time so that one can continue a simulation if it is stopped at a time.
+-> Why does the variable mass/concentration sometimes fluctuate even at convergence? Could this be improved?
+-> For different total_integration time and timesteps different results come out
+-> In general: some parts could be solved analytically almost for sure! Use sympy or scipy!
+
+
+

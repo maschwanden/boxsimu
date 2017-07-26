@@ -209,6 +209,7 @@ class Flow(BaseTransport):
                 'instances of the class Variable!')
         bs_dim_val.raise_if_not_dimless(concentration)
         self.concentrations[variable] = concentration
+        self.variables.append(variable)
 
 
 class Flux(BaseTransport):

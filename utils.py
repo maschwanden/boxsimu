@@ -63,6 +63,15 @@ def stack(arrays, *args, **kwargs):
     return np.stack(tmp_arrays, *args, **kwargs) * units
 
 
+def get_array_quantity_from_array_of_quantities(array):
+    """Return numpy array associated with quantity from array thereof."""
+
+    array_units = [x.units for x in array]
+    units = bs_dim_val.get_single_shared_unit(array_units)
+    array_magnitude = [x.magnitude for x in array]
+    return np.array(array_magnitude) * units
+
+
 def get_valid_filename_from_string(string): 
     tmp_str = str(string).strip().replace(' ', '_')
     return re.sub(r'(?u)[^-\w.]', '', tmp_str)        

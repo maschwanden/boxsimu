@@ -14,6 +14,7 @@ from attrdict import AttrDict
 
 from . import dimensionality_validation as bs_dim_val
 from . import system as bs_system
+from . import utils as bs_utils
 
 
 class Solution:
@@ -94,56 +95,58 @@ class Solution:
             masses = self.ts[box_name][variable.name]
             mass_magnitude = [mass.magnitude for mass in masses]
             ax.plot(self.time_magnitude, mass_magnitude,
-                    label='Box {}'.format(ts.box.id))
+                    label='Box {}'.format(ts.box.name))
 
         ax.set_ylabel('kg')
         ax.set_xlabel(self.time_units)
         ax.set_title(variable.name)
         ax.legend()
         return fig, ax
-        
 
-    def plot_all_variable_masses_of_box(self, box, figsize=[10, 10]):
-        pass
-#         N_boxes = len(self.ts)
-#         Nx = int(np.ceil(N_boxes**0.5))  # int((N_boxes+1)**0.5)
-#         Ny = int(round(N_boxes**0.5))
-#         print(Nx, Ny)
-#         fig, axarr = plt.subplots(Ny, Nx, sharex=True, figsize=figsize)
-# 
-#         if not self.time_units:
-#             self.time_units = self.time[0].units
-#         if not self.time_magnitude:
-#             self.time_magnitude = [t.magnitude for t in self.time]
-# 
-#         for i, (box_name, ts) in enumerate(self.ts.items()):
-#             print('i: {}'.format(i))
-#             x = i % Nx
-#             y = int(i / Nx)
-#             print('x={}  y={}'.format(x, y))
-# 
-#             handles = []
-# 
-#             for j, var_name in enumerate(variable_names):
-#                 masses = self.ts[box_name][var_name]
-#                 mass_magnitude = [mass.magnitude for mass in masses]
-#                 axarr[y, x].set_title('Box {}'.format(box_name))
-#                 line, = axarr[y, x].plot(
-#                     self.time_magnitude, mass_magnitude, label=var_name)
-#                 handles.append(line)
-# 
-#         fig.text(
-#             0.5,
-#             0.04,
-#             'Time [{}]'.format(
-#                 self.time_units),
-#             ha='center',
-#             va='center')
-#         fig.text(
-#             0.06,
-#             0.5,
-#             'Mass [kg]',
-#             ha='center',
-#             va='center',
-#             rotation='vertical')
-#         fig.legend(handles, variable_names)
+    def plot_all_variable_mass_of_box(self, box, figsize=[10, 10]):
+        fig, ax = plt.subplots()
+
+        if not self.time_units:
+            self.time_units = self.time[0].units
+        if not self.time_magnitude:
+            self.time_magnitude = [t.magnitude for t in self.time]
+
+        for variable in self.system.variable_list:
+            var_mass += self.ts[box.name][variable.name]
+            mass_magnitude = [mass.magnitude for mass in var_mass]
+            ax.plot(self.time_magnitude, mass_magnitude,
+                    label='Variable {}'.format(variable.name))
+
+        ax.set_ylabel('kg')
+        ax.set_xlabel(self.time_units)
+        ax.set_title(box.name)
+        ax.legend()
+        return fig, ax
+
+    def plot_total_variable_masses(self, figsize=[10, 10]):
+        fig, ax = plt.subplots()
+
+        if not self.time_units:
+            self.time_units = self.time[0].units
+        if not self.time_magnitude:
+            self.time_magnitude = [t.magnitude for t in self.time]
+
+        for variable in self.system.variable_list:
+            var_masses = np.zeros(len(self.time_magnitude))
+            i = 0
+            for box_name, ts in self.ts.items():
+                vm = bs_utils.get_array_quantity_from_array_of_quantities(
+                        self.ts[box_name][variable.name])
+                var_masses += vm
+                i += 1
+            mass_magnitude = [mass.magnitude for mass in var_masses]
+            ax.plot(self.time_magnitude, mass_magnitude,
+                    label='Variable {}'.format(variable.name))
+
+        ax.set_ylabel('kg')
+        ax.set_xlabel(self.time_units)
+        ax.set_title('Total Variable Concentrations')
+        ax.legend()
+        return fig, ax
+
+

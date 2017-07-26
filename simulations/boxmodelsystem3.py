@@ -60,7 +60,7 @@ def get_system():
     reaction1 = Reaction(
         name = 'Reaction1',
         variable_reaction_coefficients={A: -3, B: -5, C: 2},
-        rate=lambda t, c: min(c.A/3, c.B/5) * 0.2 / ur.year
+        rate=lambda t, c: min(c.A/3, c.B/5) * 2.2 / ur.year
     )
 
     def rr2(t, c):
@@ -85,7 +85,7 @@ def get_system():
         name_long='Box 1',
         fluid=water.q(1e5*ur.kg), 
         condition=Condition(T=290*ur.kelvin),
-        variables=[A.q(3*ur.kg), B.q(3*ur.kg)],
+        variables=[A.q(1*ur.kg), B.q(3*ur.kg)],
         reactions=[reaction1, reaction2],
     )
     box2 = Box(
@@ -93,7 +93,7 @@ def get_system():
         name_long='Box 2',
         fluid=water.q(1e5*ur.kg), 
         condition=Condition(T=300*ur.kelvin),
-        variables=[A.q(1*ur.kg), B.q(1*ur.kg)],
+        variables=[A.q(2*ur.kg), B.q(1*ur.kg)],
         reactions=[reaction1, reaction2],
     )
 
@@ -108,7 +108,7 @@ def get_system():
         rate=1e3*ur.kg/ur.year,
         tracer_transport=True,
         concentrations={
-            A: 1 * ur.gram / ur.kg,
+            #A: 1 * ur.gram / ur.kg,
             B: 2 * ur.gram / ur.kg,
         }
     )

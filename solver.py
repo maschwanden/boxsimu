@@ -60,6 +60,8 @@ class Solver:
         print('- total integration time: {}'.format(total_integration_time))
         print('- dt (time step): {}'.format(dt))
 
+        self.system = copy.deepcopy(self._system_initial)
+
         bs_dim_val.raise_if_not_time(total_integration_time)
         bs_dim_val.raise_if_not_time(dt)
 
@@ -103,6 +105,14 @@ class Solver:
         print('Start solving the box model...')
         print('- total integration time: {}'.format(total_integration_time))
         print('- dt (time step): {}'.format(dt))
+
+        pdb.set_trace()
+
+        self.system = copy.deepcopy(self._system_initial)
+
+        if len(self.system.variable_list) == 0:
+            return self.solve_flows(total_integration_time, dt)
+                
 
         bs_dim_val.raise_if_not_time(total_integration_time)
         bs_dim_val.raise_if_not_time(dt)
@@ -200,7 +210,6 @@ class Solver:
         s_e = self.system.get_fluid_mass_flow_sink_1Darray(time)
         q_e = self.system.get_fluid_mass_flow_source_1Darray(time)
 
-
         # calculate first estimate of mass change vector
         dm = (q_e + q_i - s_e - s_i) * dt
         # calculate first estimate of mass after timestep
@@ -261,19 +270,17 @@ class Solver:
 
             var = (var_ini + dvar).to_base_units()
             
+            net_sink[net_sink.magnitude == 0] = np.nan  # to evade division by zero
 
-            net_sink[net_sink == 0] = np.nan  # to evade division by zero
-
-            f_var_tmp = ((var_ini + net_source) / net_sink) 
+            f_var_tmp = ((var_ini + net_source) / net_sink).magnitude 
+            f_var_tmp[np.isnan(f_var_tmp)] = 1
             f_var_tmp[f_var_tmp > 1] = 1
-            f_var_tmp[f_var_tmp == np.nan] = 1
-
-            if np.any(f_var_tmp.magnitude < 1):
+            if np.any(f_var_tmp < 1):
                 f_var_tmp[f_var_tmp < 1] -= 1e-15 # np.nextafter(0, 1)
                 f_var *= f_var_tmp
             else:
                 break
-        return var
+        return dvar
 
     def _get_sink_source_flow(self, variable, time, dt, f_var, f_flow):
         v1 = np.ones(self.system.N_boxes)
