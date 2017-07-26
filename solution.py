@@ -80,47 +80,70 @@ class Solution:
         ax.set_xlabel(self.time_units)
         ax.set_title('Box masses')
         ax.legend()
+        return fig, ax
 
-    def plot_variables_masses(self, variables, figsize=[10, 10]):
-        N_boxes = len(self.ts)
-        Nx = int(np.ceil(N_boxes**0.5))  # int((N_boxes+1)**0.5)
-        Ny = int(round(N_boxes**0.5))
-        print(Nx, Ny)
-        fig, axarr = plt.subplots(Ny, Nx, sharex=True, figsize=figsize)
+    def plot_variable_mass_of_all_boxes(self, variable, figsize=[10, 10]):
+        fig, ax = plt.subplots()
 
         if not self.time_units:
             self.time_units = self.time[0].units
         if not self.time_magnitude:
             self.time_magnitude = [t.magnitude for t in self.time]
 
-        for i, (box_name, ts) in enumerate(self.ts.items()):
-            print('i: {}'.format(i))
-            x = i % Nx
-            y = int(i / Nx)
-            print('x={}  y={}'.format(x, y))
+        for box_name, ts in self.ts.items():
+            masses = self.ts[box_name][variable.name]
+            mass_magnitude = [mass.magnitude for mass in masses]
+            ax.plot(self.time_magnitude, mass_magnitude,
+                    label='Box {}'.format(ts.box.id))
 
-            handles = []
+        ax.set_ylabel('kg')
+        ax.set_xlabel(self.time_units)
+        ax.set_title(variable.name)
+        ax.legend()
+        return fig, ax
+        
 
-            for j, var_name in enumerate(variable_names):
-                masses = self.ts[box_name][var_name]
-                mass_magnitude = [mass.magnitude for mass in masses]
-                axarr[y, x].set_title('Box {}'.format(box_name))
-                line, = axarr[y, x].plot(
-                    self.time_magnitude, mass_magnitude, label=var_name)
-                handles.append(line)
-
-        fig.text(
-            0.5,
-            0.04,
-            'Time [{}]'.format(
-                self.time_units),
-            ha='center',
-            va='center')
-        fig.text(
-            0.06,
-            0.5,
-            'Mass [kg]',
-            ha='center',
-            va='center',
-            rotation='vertical')
-        fig.legend(handles, variable_names)
+    def plot_all_variable_masses_of_box(self, box, figsize=[10, 10]):
+        pass
+#         N_boxes = len(self.ts)
+#         Nx = int(np.ceil(N_boxes**0.5))  # int((N_boxes+1)**0.5)
+#         Ny = int(round(N_boxes**0.5))
+#         print(Nx, Ny)
+#         fig, axarr = plt.subplots(Ny, Nx, sharex=True, figsize=figsize)
+# 
+#         if not self.time_units:
+#             self.time_units = self.time[0].units
+#         if not self.time_magnitude:
+#             self.time_magnitude = [t.magnitude for t in self.time]
+# 
+#         for i, (box_name, ts) in enumerate(self.ts.items()):
+#             print('i: {}'.format(i))
+#             x = i % Nx
+#             y = int(i / Nx)
+#             print('x={}  y={}'.format(x, y))
+# 
+#             handles = []
+# 
+#             for j, var_name in enumerate(variable_names):
+#                 masses = self.ts[box_name][var_name]
+#                 mass_magnitude = [mass.magnitude for mass in masses]
+#                 axarr[y, x].set_title('Box {}'.format(box_name))
+#                 line, = axarr[y, x].plot(
+#                     self.time_magnitude, mass_magnitude, label=var_name)
+#                 handles.append(line)
+# 
+#         fig.text(
+#             0.5,
+#             0.04,
+#             'Time [{}]'.format(
+#                 self.time_units),
+#             ha='center',
+#             va='center')
+#         fig.text(
+#             0.06,
+#             0.5,
+#             'Mass [kg]',
+#             ha='center',
+#             va='center',
+#             rotation='vertical')
+#         fig.legend(handles, variable_names)

@@ -5,10 +5,3 @@ Boxes contain a fluid and variables that can be traced. The fluid and
 variables are altered by fluid-flows, variable-fluxes, processes and
 reactions.
 
-Requirements:
-- numpy
-- matplotlib
-- pint
-- attrdict
-- svgwrite
-- PyYAML

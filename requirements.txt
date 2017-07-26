@@ -1,0 +1,10 @@
+Python 3.4 or newer
+numpy
+matplotlib
+pint
+attrdict
+svgwrite
+PyYAML 
+
+Optioanl but recommended:
+jupyter

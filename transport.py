@@ -175,12 +175,16 @@ class Flow(BaseTransport):
 
         self.variables = []
         self.concentrations = {}
+        
+        if source_box and len(concentrations) > 0:
+            raise ValueError('Flow concentrations can only be predefined for '
+                    'Flows from the outside of the system.')
 
         # Check if variable_concentration_dict is valid
         for variable, concentration in concentrations.items():
             if not isinstance(variable, bs_entities.Variable):
                 raise ValueError('Keys of the variable_concentration_dict must be '
-                    'instances of the class Variable!')
+                    'instances of the class Variable (source_box=None)!')
             bs_dim_val.raise_if_not_dimless(concentration)
             var_copy = copy.deepcopy(variable)
             self.variables.append(var_copy)

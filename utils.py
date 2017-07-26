@@ -10,6 +10,9 @@ import re
 import numpy as np
 
 
+from . import dimensionality_validation as bs_dim_val
+
+
 def OneDarray_to_TwoDarray_method(vector_method):
     """Return method that returns 2Darray from 1Darrays from vector_method."""
     def _2Darray_method(self, *args):
@@ -45,6 +48,19 @@ def dot(a, b):
     except AttributeError:
         pass
     return np.dot(a_vec, b_vec) * a_units * b_units
+
+
+def stack(arrays, *args, **kwargs):
+    tmp_arrays = []
+    tmp_units = []
+    for a in arrays:
+        try:
+            tmp_arrays.append(a.to_base_units().magnitude)
+            tmp_units.append(a.to_base_units().units)
+        except AttributeError:
+            tmp_arrays.append(a)
+    units = bs_dim_val.get_single_shared_unit(tmp_units)
+    return np.stack(tmp_arrays, *args, **kwargs) * units
 
 
 def get_valid_filename_from_string(string): 

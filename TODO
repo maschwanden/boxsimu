@@ -28,3 +28,15 @@ def mass(self, m):
 
 
 -> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating in reactions etc....)
+-> Maybe adjust timestep dynamically in the solver: if some conditions are met that could affect the quality of the simulation-> make the timestep half as large...
+-> Gleichgewichts-reaktion: Reaction that can run in both directions depending on the concentration of educts and products (for this type a equilibrium constant K must be given)
+
+
+
+TODO stand 27.07.2017:
+-> Pickle boxsimu objects
+-> numba / cython to speed up the simulation time
+-> There are some major bugs in the code (variable concentration increase exponentially with time)
+-> Logging functionality
+-> Write more built ins
+-> visualization of the system (flows and fluxes are not implemented now)

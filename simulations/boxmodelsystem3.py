@@ -13,15 +13,17 @@ Reactions:
 """
 
 import sys
+import os
 import copy
 import numpy as np
 import datetime
 
 from matplotlib import pyplot as plt
 
-BOXSIMU_PATH = '/home/aschi/Documents/MyPrivateRepo/'
-if not BOXSIMU_PATH in sys.path:
-    sys.path.append(BOXSIMU_PATH)
+
+if not os.path.abspath(__file__ + "/../../../") in sys.path:
+    sys.path.append(os.path.abspath(__file__ + "/../../../"))
+
 
 from boxsimu.entities import Fluid, Variable
 from boxsimu.box import Box
@@ -31,17 +33,15 @@ from boxsimu.system import BoxModelSystem
 from boxsimu.process import Process, Reaction
 from boxsimu.solver import Solver
 from boxsimu import utils
+from boxsimu import ur
 
 
-def get_system(ur=None):
-    if not ur: 
-        from boxsimu import ur
-
+def get_system():
     #############################
     # FLUIDS
     #############################
 
-    water = Fluid('water', rho_expr=1000*ur.kg/ur.meter**3)
+    water = Fluid('water', rho=1000*ur.kg/ur.meter**3)
     
     #############################
     # VARIABLES

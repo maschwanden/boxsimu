@@ -15,6 +15,7 @@ from attrdict import AttrDict
 
 from . import errors as bs_errors
 from . import condition as bs_condition
+from . import descriptors as bs_descriptors
 
 
 class Box:
@@ -52,6 +53,8 @@ class Box:
         reactions (list of Reaction): Reactions that take place in the box.
 
     """
+
+    name = bs_descriptors.ImmutableNameDescriptor()
 
     def __init__(self, name, name_long, fluid, condition=None, variables=None,
                  processes=None, reactions=None):

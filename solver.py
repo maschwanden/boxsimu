@@ -17,6 +17,7 @@ import math
 from . import solution as bs_solution
 from . import utils as bs_utils
 from . import dimensionality_validation as bs_dim_val
+from . import ur
 
 DEBUG = False
 
@@ -81,7 +82,7 @@ class Solver:
                 print("{}%".format(progress))
             sol.time.append(time)
 
-            dm, f = self._calculate_mass_flows(time, dt)
+            dm, f_flow = self._calculate_mass_flows(time, dt)
 
             for box_name, box in self.system.boxes.items():
                 # Write changes to box objects
@@ -98,131 +99,73 @@ class Solver:
                 end_time - start_time))
         return sol
 
-    def solve(self, total_integration_time, dt, debug=True):
-        global DEBUG
-        DEBUG = debug
-
+    def solve(self, total_integration_time, dt):
         print('Start solving the box model...')
-        print('- integration time: {}'.format(total_integration_time))
-        print('- time step: {}'.format(dt))
+        print('- total integration time: {}'.format(total_integration_time))
+        print('- dt (time step): {}'.format(dt))
 
-        dprint('----> mm: ', self.system.mm)
-        dprint('----> sum(mm): ', self.system.mm.sum())
+        bs_dim_val.raise_if_not_time(total_integration_time)
+        bs_dim_val.raise_if_not_time(dt)
+
+        # Get number of time steps - round up if there is a remainder
+        N_timesteps = math.ceil(total_integration_time / dt)
+        time = total_integration_time * 0
 
         # Start time of function
         start_time = time_module.time()
 
-        # Get number of time steps - round up if there is a remainder
-        N_timesteps = int(total_integration_time / dt)
-        time = total_integration_time * 0
-
-        sol = solution.Solution(
-            total_integration_time, dt, self.system.box_list)
+        sol = bs_solution.Solution(total_integration_time, dt, 
+                self.system)
 
         progress = 0
         for i in range(N_timesteps):
+            # Calculate progress in percentage of processed timesteps
             progress_old = progress
-            progress = round(float(i) / float(N_timesteps), 1) * 100.0
+            progress = int(float(i) / float(N_timesteps)*10) * 10.0
             if progress != progress_old:
                 print("{}%".format(progress))
-            dprint('Time: {}'.format(time))
             sol.time.append(time)
-            if time.magnitude > 140:
-                #DEBUG = True
-                # pdb.set_trace()
-                pass
+            print(i)
 
             ##################################################
             # Calculate Mass fluxes
             ##################################################
 
-            m_change, m_units, A = self._calculate_mass_flows(time, dt)
+            dm, f_flow = self._calculate_mass_flows(time, dt)
 
             ##################################################
             # Calculate Variable changes due to PROCESSES,
-            # REACTIONS, FUXES and finally due to the FLOWS
+            # REACTIONS, FUXES and FLOWS
             ##################################################
 
-            var_changes = {}
-            var_units = {}
-
-            for var_name, var in self.system.variables.items():
-                dprint('\n\n\n\n\nSOLVE for variable {}'.format(var_name))
-                var_changes[var_name] = self._calculate_changes_of_variable(
-                    time, dt, var, A)
-
-            dprint('var_changes: {}'.format(var_changes))
-            dprint('var_units: {}'.format(var_units))
+            dvar = self._calculate_changes_of_all_variables(
+                    time, dt, f_flow)
 
             ##################################################
             # Apply changes to Boxes and save values to
             # Solution instance
             ##################################################
 
-            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-            for box_name, box in self.system.boxes.items():
-                for var_name, var in box.variables.items():
-                    dprint(
-                        '1111self.boxes[{}].variables[{}].mass: '.format(
-                            box_name,
-                            var_name),
-                        self.system.boxes[box_name].variables[var_name].mass)
-            dprint('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-
-            for box_name, box in self.system.boxes.items():
+            for box in self.system.box_list:
                 # Write changes to box objects
-                box.fluid.mass += m_change[box.id] * m_units
+                box.fluid.mass += dm[box.id]
 
                 # Save mass to Solution instance
-                sol.ts[box_name]['mass'].append(box.fluid.mass)
+                sol.ts[box.name]['mass'].append(box.fluid.mass)
 
-                for var_name, var in box.variables.items():
-
-                    dprint('__________________________________')
-                    dprint('$$$$$$1111self.boxes[{}].variables[{}].mass: '.format(
-                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
-                    dprint('box_name: ', box_name)
-                    dprint(var_name + ':')
-                    dprint(var_changes[var_name][box.id])
-                    dprint(var_units[var_name])
-
-                    dprint('@@@@ : ', var_changes[var_name][box.id])
-                    dprint('@@@@ : ', var_units[var_name])
-                    dprint(
-                        '@@@@ : ',
-                        self.system.boxes[box_name].variables[var_name].mass)
-
-                    new_var_mass = var_changes[var_name][box.id] * var_units[var_name] + \
-                        self.system.boxes[box_name].variables[var_name].mass
-
-                    dprint('@@@@ : ', new_var_mass)
-                    dprint(box_name, var_name)
-                    self.system.boxes[box_name].variables[var_name].mass = new_var_mass
-
-                    sol.ts[box_name][var_name].append(
-                        self.system.boxes[box_name].variables[var_name].mass)
-
-                    self.system.mm.loc[box_name, var_name] = new_var_mass
-                    if box.fluid.mass.magnitude > 0:
-                        self.system.cm.loc[box_name,
-                                           var_name] = new_var_mass / box.fluid.mass
-                    else:
-                        self.system.cm.loc[box_name, var_name] = 0
-
-                    dprint('$$$$$$2222self.boxes[{}].variables[{}].mass: '.format(
-                        box_name, var_name), self.system.boxes[box_name].variables[var_name].mass)
+                for variable in self.system.variable_list:
+                    var_name = variable.name
+                    self.system.boxes[box.name].variables[var_name].mass += \
+                            dvar[box.id, variable.id]
+                    sol.ts[box.name][var_name].append(
+                        self.system.boxes[box.name].variables[var_name].mass)
             time += dt
-
-            dprint('----> mm: ', self.system.mm)
-            dprint('----> sum(mm): ', self.system.mm.sum())
-            a = dinput('(End of timestep loop) Wait for it...')
 
         # End Time of Function
         end_time = time_module.time()
         print(
             'Function "solve(...)" used {:3.3f}s'.format(
                 end_time - start_time))
-
         return sol
 
     # HELPER functions
@@ -236,14 +179,14 @@ class Solver:
 
         Returns:
             dm (numpy 1D array of pint.Quantities): Mass changes of every box.
-            f (numpy 1D array): Reduction coefficient of the mass 
+            f_flow (numpy 1D array): Reduction coefficient of the mass 
                 flows (due to becoming-empty boxes -> box mass cannot 
                 decrase below 0kg).
 
         """
-        # f is the reduction coefficent of the "sink-flows" of each box
+        # f_flow is the reduction coefficent of the "sink-flows" of each box
         # scaling factor for sinks of each box
-        f = np.ones(self.system.N_boxes)
+        f_flow = np.ones(self.system.N_boxes)
         v1 = np.ones(self.system.N_boxes)
 
         m_ini = self.system.get_fluid_mass_1Darray()
@@ -266,27 +209,28 @@ class Solver:
         while np.any(m.magnitude < 0):
             argmin = np.argmin(m)
             # Calculate net sink and source and mass of the 'empty' box.
-            net_source = q_e[argmin] + q_i[argmin]
-            net_sink = s_e[argmin] + s_i[argmin]
+            net_source = (q_e[argmin] + q_i[argmin])*dt
+            net_sink = (s_e[argmin] + s_i[argmin])*dt
             available_mass = m_ini[argmin]
+            total_mass = (net_source + available_mass).to_base_units()
 
-            if (net_source + available_mass) > 0 and net_sink > 0:
-                f[argmin] = min(float(net_source + available_mass) / 
-                        float(net_sink), f[argmin] * 0.95)
+            if total_mass.magnitude > 0: 
+                f_new = (total_mass / net_sink).to_base_units().magnitude 
+                f_flow[argmin] = min(f_new, f_flow[argmin] * 0.98)
             else:
-                f[argmin] = 0
+                f_flow[argmin] = 0
 
             # Apply reduction of sinks of the box
-            A = (A.T * f).T
+            A = (A.T * f_flow).T
             s_i = bs_utils.dot(A, v1)
             q_i = bs_utils.dot(A.T, v1)
-            s_e = f * s_e
+            s_e = f_flow * s_e
             dm = (q_e + q_i - s_e - s_i) * dt
             m = m_ini + dm
-        return dm, f
+        return dm, f_flow
 
-    def _calculate_changes_of_variable(self, time, dt, variable, f_flow):
-        """ Calculates the changes of ONE variable in every box.
+    def _calculate_changes_of_all_variables(self, time, dt, f_flow):
+        """ Calculates the changes of all variable in every box.
 
         Args:
             time (pint.Quantity [T]): Current time (age) of the system.
@@ -295,250 +239,144 @@ class Solver:
                 due to empty boxes.
 
         Returns:
-            dvar (numpy 1D array of pint.Quantities): Variables changes of 
-                every box.
+            dvar (numpy 2D array of pint.Quantities): Variables changes of 
+                every box. First dimension are the boxes, second dimension
+                are the variables.
 
         """
         # reduction coefficent of the "variable-sinks" of each box for the
         # treated variable
         # scaling factor for sinks of each box
-        f = np.ones(self.system.N_boxes)
-        one_vec = np.ones(self.system.N_boxes)
-        var, var_units = self.system.get_box_variable_mass_vector(variable)
-        var_conc, var_conc_units = self.system.get_box_variable_concentration_vector(
-            variable)
+        f_var = np.ones([self.system.N_boxes, self.system.N_variables])
+        var_ini = bs_utils.stack([self.system.get_variable_mass_1Darray(
+            variable) for variable in self.system.variable_list], axis=-1)
 
-        var_conc_matrix = np.array([var_conc, ] * self.system.N_boxes).T
+        while True:
+            dvar_list, net_sink_list, net_source_list = zip(*[self._get_dvar(
+                variable, time, dt, f_var, f_flow) 
+                for variable in self.system.variable_list])
+            dvar = bs_utils.stack(dvar_list, axis=-1)
+            net_sink = bs_utils.stack(net_sink_list, axis=-1)
+            net_source = bs_utils.stack(net_source_list, axis=-1)
 
-        var_ini = copy.deepcopy(var)
+            var = (var_ini + dvar).to_base_units()
+            
 
-        # mass flows relevant for variable-advection
-        # Tracer-Transport Flows
-        tt_flows = [flow for flow in self.system.flows if flow.tracer_transport]
-        tt_flows_with_variables = [
-            flow for flow in tt_flows if len(
-                flow.variables) > 0]
-        mass_flow_A = self.system.get_flow_matrix(time, tt_flows)
-        mass_flow_A = (mass_flow_A.transpose() * f_flow).transpose()
-        mass_flow_s = self.system.get_flow_sink_vector(
-            time, tt_flows_with_variables) * f_flow
-        mass_flow_q = self.system.get_flow_source_vector(
-            time, tt_flows) * f_flow
+            net_sink[net_sink == 0] = np.nan  # to evade division by zero
 
-        # all of these vectors have units of kg/s
-        flow_s = mass_flow_s * var_conc
-        flow_q = mass_flow_q
-        p_s, p_s_units = self.system.get_process_sink_vector_of_variable(
-            time, variable)
-        p_q, p_q_units = self.system.get_process_source_vector_of_variable(
-            time, variable)
-        # r_s, r_s_units = self.system.get_reaction_sink_vector_of_variable(time, variable)
-        # r_q, r_q_units = self.system.get_reaction_source_vector_of_variable(time, variable)
-        f_s, f_s_units = self.system.get_flux_sink_vector_of_variable(
-            time, variable)
-        f_q, f_q_units = self.system.get_flux_source_vector_of_variable(
-            time, variable)
+            f_var_tmp = ((var_ini + net_source) / net_sink) 
+            f_var_tmp[f_var_tmp > 1] = 1
+            f_var_tmp[f_var_tmp == np.nan] = 1
 
-        dimless_dt = ((f_q_units / var_units) * dt).to_base_units().magnitude
-
-        sources = (
-            (p_q +
-             r_q +
-             f_q +
-             np.dot(
-                 mass_flow_A.T,
-                 var_conc)) *
-            dimless_dt)
-        sinks = (
-            (p_s +
-             r_s +
-             f_s +
-             np.dot(
-                 mass_flow_A *
-                 var_conc_matrix,
-                 one_vec)) *
-            dimless_dt)
-        var_changes = sources - sinks
-
-        dprint('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-        dprint('var: {}'.format(variable.name))
-        dprint('mass_flow_A: {}'.format(mass_flow_A))
-        dprint('var_conc: ', var_conc)
-        dprint('tt_flows: ', tt_flows)
-        dprint('tt_flows_with_variables: ', tt_flows_with_variables)
-        dprint('var_conc_matrix: ', var_conc_matrix)
-        dprint('p_s: {}'.format(p_s))
-        dprint('p_q: {}'.format(p_q))
-        dprint('r_s: {}'.format(r_s))
-        dprint('r_q: {}'.format(r_q))
-        dprint('f_s: {}'.format(f_s))
-        dprint('f_q: {}'.format(f_q))
-        dprint('np.dot(B.T, var_conc) : {}'.format(np.dot(B.T, var_conc)))
-        dprint('np.dot(mass_flow_A * var_conc_matrix, one_vec): {}'.format(
-            np.dot(mass_flow_A * var_conc_matrix, one_vec)))
-        dprint('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-
-        dprint('------------------------------------')
-        dprint('var_changes: {}'.format(var_changes))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint(
-            'source due to Processes per timestep (np.dot(one_vec, p_q)): {}'.format(
-                np.dot(
-                    one_vec,
-                    p_q)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint('sink due to Processes per timestep (- np.dot(one_vec, p_s)): {}'.format(- np.dot(one_vec, p_s)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint(
-            'source due to Reactions per timestep (np.dot(one_vec, r_q)): {}'.format(
-                np.dot(
-                    one_vec,
-                    r_q)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint('sink due to Reactions per timestep (- np.dot(one_vec, r_s)): {}'.format(- np.dot(one_vec, r_s)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint(
-            'source due to Fluxes per timestep (np.dot(one_vec, f_q)): {}'.format(
-                np.dot(
-                    one_vec,
-                    f_q)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint('sink due to Fluxes per timestep (- np.dot(one_vec, f_s)): {}'.format(- np.dot(one_vec, f_s)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint(
-            'source due to Flows per timestep (np.dot(mass_flow_A.T, var_conc)): {}'.format(
-                np.dot(
-                    mass_flow_A.T,
-                    var_conc)))
-        dprint('------------------------------------')
-
-        dprint('------------------------------------')
-        dprint('sink due to Flows per timestep (- np.dot(mass_flow_A * var_conc_matrix, one_vec)): {}'.format(- np.dot(
-            mass_flow_A * var_conc_matrix, one_vec)))
-        dprint('------------------------------------')
-
-        var = var_ini + var_changes
-
-        while_counter = 0
-
-        #print('VAR: ', var)
-        #print('var_conc', var_conc)
-        while np.any(var < 0):
-            while_counter += 1
-            dprint('in while.... {}'.format(while_counter))
-            dprint('f before corrections', f)
-
-            argmin = np.argmin(var)
-            dprint('argmin: {}'.format(argmin))
-
-            available_var = var_ini[argmin]
-
-            dprint('available_var: ', available_var)
-
-            sources = (
-                (p_q +
-                 r_q +
-                 f_q +
-                 np.dot(
-                     mass_flow_A.T,
-                     var_conc)) *
-                dimless_dt)
-            sinks = (
-                (p_s +
-                 r_s +
-                 f_s +
-                 np.dot(
-                     mass_flow_A *
-                     var_conc_matrix,
-                     one_vec)) *
-                dimless_dt)
-            net_source = sources[argmin]
-            net_sink = sinks[argmin]
-
-            if (net_source + available_var) > 0:
-                dprint('net_source+available_var > 0!')
-                f[argmin] = min(
-                    float(net_source + available_var) / float(net_sink),
-                    f[argmin] * 0.95
-                )
+            if np.any(f_var_tmp.magnitude < 1):
+                f_var_tmp[f_var_tmp < 1] -= 1e-15 # np.nextafter(0, 1)
+                f_var *= f_var_tmp
             else:
-                dprint('net_source+available_var <= 0! -> f[argmin] = 0')
-                f[argmin] = 0
+                break
+        return var
 
-            dprint('f after corrections: ', f)
+    def _get_sink_source_flow(self, variable, time, dt, f_var, f_flow):
+        v1 = np.ones(self.system.N_boxes)
+        flows = self.system.flows
+        A_flow = self.system.get_variable_internal_flow_2Darray(variable, 
+                time, f_flow, flows)
+        A_flow = (A_flow.T * f_var[:, variable.id]).T
+        s_flow_i = bs_utils.dot(A_flow, v1)
+        q_flow_i = bs_utils.dot(A_flow.T, v1)
+        s_flow_e = self.system.get_variable_flow_sink_1Darray(variable, 
+                time, f_flow, flows)
+        s_flow_e = self.system.get_variable_flow_sink_1Darray(variable, 
+                time, f_flow, flows) * f_var[:, variable.id]
 
-            # Reduce Sinks and Sources accordingly to calculated f values
-            mass_flow_A = (mass_flow_A.transpose() * f).transpose()
-            flow_s = mass_flow_s * f
-            mass_flow_q
-            p_s = p_s * f
-            r_s = r_s * f
-            f_s = f_s * f
+        q_flow_e = self.system.get_variable_flow_source_1Darray(variable,
+                time, flows)
+        sink_flow = ((s_flow_i + s_flow_e) * dt).to_base_units()
+        source_flow = ((q_flow_i + q_flow_e) * dt).to_base_units()
+        return sink_flow, source_flow
 
-            sources = (
-                (p_q +
-                 r_q +
-                 f_q +
-                 np.dot(
-                     mass_flow_A.T,
-                     var_conc)) *
-                dimless_dt)
-            sinks = (
-                (p_s +
-                 r_s +
-                 f_s +
-                 np.dot(
-                     mass_flow_A *
-                     var_conc_matrix,
-                     one_vec)) *
-                dimless_dt)
+    def _get_sink_source_flux(self, variable, time, dt, f_var):
+        v1 = np.ones(self.system.N_boxes)
+        fluxes = self.system.fluxes
+        A_flux = self.system.get_variable_internal_flux_2Darray(variable,
+                time, fluxes)
+        A_flux = (A_flux.T * f_var[:, variable.id]).T
+        s_flux_i = bs_utils.dot(A_flux, v1)
+        q_flux_i = bs_utils.dot(A_flux.T, v1)
+        s_flux_e = self.system.get_variable_flux_sink_1Darray(variable, 
+                time, fluxes)
+        s_flux_e = self.system.get_variable_flux_sink_1Darray(variable, 
+                time, fluxes) * f_var[:, variable.id]
 
-            dprint('np.dot(mass_flow_A.T, var_conc) * f)',
-                   np.dot(mass_flow_A.T, var_conc) * f)
-            dprint('np.dot(mass_flow_A * var_conc_matrix, one_vec)*f',
-                   np.dot(mass_flow_A * var_conc_matrix, one_vec) * f)
+        q_flux_e = self.system.get_variable_flux_source_1Darray(variable,
+                time, fluxes)
+        sink_flux = ((s_flux_i + s_flux_e) * dt).to_base_units()
+        source_flux = ((q_flux_i + q_flux_e) * dt).to_base_units()
+        dvar_flux = source_flux - sink_flux
+        return sink_flux, source_flux
 
-            # Calculated corrected var_changes
-            var_changes = (sources - sinks)
+    def _get_sink_source_process(self, variable, time, dt, f_var):
+        processes = self.system.processes
+        s_process = self.system.get_variable_process_sink_1Darray(variable, 
+                time, processes)
+        s_process = self.system.get_variable_process_sink_1Darray(variable, 
+                time, processes) * f_var[:, variable.id]
+        q_process = self.system.get_variable_process_source_1Darray(variable,
+                time, processes)
+        sink_process = (s_process * dt).to_base_units()
+        source_process = (q_process * dt).to_base_units()
+        return sink_process, source_process
 
-            var = var_ini + var_changes
+    def _get_sink_source_reaction(self, variable, time, dt, f_var):
+        reactions = self.system.reactions
+        rr_cube = self.system.get_reaction_rate_3Darray(time, reactions)
 
-            dprint('var: ' + variable.name)
-            dprint(
-                'variable mass per box at the begining of this timestep: {}'.format(var_ini))
-            dprint(
-                'variable mass per box at the end of this timestep: {}'.format(
-                    var_ini + var_changes))
-            dprint('var_changes: ', var_changes)
-            dprint('sources', sources)
-            dprint('sinks', sinks)
+        ## APPLY CORRECTIONS HERE!
+        if np.any(f_var < 1):
+            f_rr_cube = np.ones_like(rr_cube)
+            for index in np.argwhere(f_var < 1):
+                reduction_factor = f_var[tuple(index)]
+                box = self.system.box_list[index[0]]
+                box_name = box.name
+                variable_name = self.system.variable_list[index[1]].name
+                sink_reaction_indecies = np.argwhere(rr_cube[index[0], index[1], :].magnitude < 0)
+                sink_reaction_indecies = list(sink_reaction_indecies.flatten())
 
-            sdlkfahdl = dinput('AT THE END OF WHILE...')
+                for sink_reaction_index in sink_reaction_indecies:
+                    if f_rr_cube[index[0], index[1], sink_reaction_index] > reduction_factor:
+                        f_rr_cube[index[0], :, sink_reaction_index] = reduction_factor
+            rr_cube *= f_rr_cube
 
-        dprint('>>>>>>>>>>>')
-        dprint('FINAL {} change: {}'.format(variable.name, var_changes))
-        dprint('FINAL {}: {}'.format(variable.name, var))
-        dprint('>>>>>>>>>>>')
 
-        sdlfjsdll = dinput(
-            'AT THE END OF CALCULATE VARIABLE MASS CHANGE FUNCTION')
+        # Set all positive values to 0
+        sink_rr_cube = np.absolute(rr_cube.magnitude.clip(max=0)) * rr_cube.units
+        # Set all negative values to 0
+        source_rr_cube = rr_cube.magnitude.clip(min=0) * rr_cube.units
+        s_reaction = sink_rr_cube.sum(axis=2)[:, variable.id]
+        q_reaction = source_rr_cube.sum(axis=2)[:, variable.id]
+        
+        sink_reaction = (s_reaction * dt).to_base_units()
+        source_reaction = (q_reaction * dt).to_base_units()
+        return sink_reaction, source_reaction
 
-        return var_changes, var_units
+    def _get_dvar(self, variable, time, dt, f_var, f_flow):
+        # Get variables sources (q) and sinks (s)
+        # i=internal, e=external
 
-    def _calculate_reaction_variable_changes(self):
-        pass
+        sink_flow, source_flow = self._get_sink_source_flow(variable, 
+                time, dt, f_var, f_flow)
+        sink_flux, source_flux = self._get_sink_source_flux(variable, 
+                time, dt, f_var)
+        sink_process, source_process = self._get_sink_source_process(
+                variable, time, dt, f_var)
+        sink_reaction, source_reaction = self._get_sink_source_reaction(
+                variable, time, dt, f_var)
+
+        net_sink = sink_flow + sink_flux + sink_process + sink_reaction
+        net_source = (source_flow + source_flux + source_process + 
+                source_reaction)
+        
+        net_sink = net_sink.to_base_units()
+        net_source = net_source.to_base_units()
+        dvar = (net_source - net_sink).to_base_units()
+        return dvar, net_sink, net_source
 

@@ -18,8 +18,6 @@ import datetime
 
 from matplotlib import pyplot as plt
 
-from pint import UnitRegistry
-ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
 if not os.path.abspath(__file__ + "/../../../") in sys.path:
     sys.path.append(os.path.abspath(__file__ + "/../../../"))
@@ -33,13 +31,14 @@ from boxsimu.process import Process, Reaction
 from boxsimu.solver import Solver
 from boxsimu import utils
 from boxsimu.simulations import boxmodelsystem2
+from boxsimu import ur
 
 
 class BoxModelSystem2Test(TestCase):
     """Test boxsimu framework using an intermediate complex box model."""
 
     def setUp(self, *args, **kwargs):
-        self.system = boxmodelsystem2.get_system(ur)
+        self.system = boxmodelsystem2.get_system()
         self.solver = Solver(self.system)
         self.la = self.system.boxes.lake
         self.uo = self.system.boxes.upper_ocean

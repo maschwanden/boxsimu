@@ -1,0 +1,13 @@
+Start solving the box model...
+- total integration time: 10 second
+- dt (time step): 1 second
+10.0%
+20.0%
+30.0%
+40.0%
+50.0%
+60.0%
+70.0%
+80.0%
+90.0%
+Function "solve(...)" used 2.547s

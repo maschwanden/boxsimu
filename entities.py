@@ -12,6 +12,7 @@ from keyword import iskeyword
 
 # import all submodules with prefix 'bs' for BoxSimu
 from . import dimensionality_validation as bs_dim_val
+from . import descriptors as bs_descriptors
 from . import ur
 
 
@@ -29,14 +30,13 @@ class BaseEntity:
 
     """
 
+    mass = bs_descriptors.MassDescriptor('mass', ur.kg, 0*ur.kg)
+    molar_mass = bs_descriptors.PintQuantityDescriptor('mass_mass', 
+            ur.mole/ur.kg, 0*ur.mole/ur.kg)
+
     def __init__(self, name, molar_mass=None):
         self.name = name
-
-        self.molar_mass = molar_mass
-        if self.molar_mass:
-            bs_dim_val.raise_if_not_molar_mass(self.molar_mass) 
-
-        self._mass = None
+        self._molar_mass = molar_mass
         self._quantified = False
 
     def __hash__(self):
@@ -75,16 +75,6 @@ class BaseEntity:
             raise ValueError('Addition not possible, objects are not compatible!')
 
     @property
-    def mass(self):
-        return self._mass
-
-    @mass.setter
-    def mass(self, value):
-        bs_dim_val.raise_if_not_mass(value)
-        self._quantified = True
-        self._mass = value
-
-    @property
     def quantified(self):
         return self._quantified
 
@@ -121,23 +111,22 @@ class Fluid(BaseEntity):
 
     """
 
-    def __init__(self, name, rho_expr):
-        if callable(rho_expr) or bs_dim_val.is_density(rho_expr):
-            self.rho_expr = rho_expr
-        else:
-            raise ValueError('rho_expr must either be callable or a pint.Quantity '
-                    'with dimensions of [M/L^3].')
+    rho = bs_descriptors.PintQuantityDescriptor('rho', 
+            ur.kg/ur.meter**3, 0*ur.kg/ur.meter**3)
+
+    def __init__(self, name, rho): 
+        self.rho = rho
         super().__init__(name)
 
     def get_rho(self, context=None):
         """Return the density of the Fluid."""
-        if callable(self.rho_expr):
+        if callable(self.rho):
             if context is None:
                 raise ValueError('If rho is given as a dynamic expression '
                     '(function), an appropriate context must be given.')
-            rho = self.rho_expr(context)
+            rho = self.rho(context)
         else:
-            rho = self.rho_expr
+            rho = self.rho
         return rho.to_base_units()
 
     def get_volume(self, context=None):
@@ -166,7 +155,7 @@ class Variable(BaseEntity):
     def __init__(self, name, molar_mass=None, mobility=True):
         self.id = None
         self.mobility = mobility
-        super().__init__(name)
+        super().__init__(name, molar_mass)
 
     @property
     def name(self):

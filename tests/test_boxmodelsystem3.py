@@ -18,8 +18,6 @@ import math
 
 from matplotlib import pyplot as plt
 
-from pint import UnitRegistry
-ur = UnitRegistry(autoconvert_offset_to_baseunit = True)
 
 if not os.path.abspath(__file__ + "/../../../") in sys.path:
     sys.path.append(os.path.abspath(__file__ + "/../../../"))
@@ -33,13 +31,14 @@ from boxsimu.process import Process, Reaction
 from boxsimu.solver import Solver
 from boxsimu import utils
 from boxsimu.simulations import boxmodelsystem3
+from boxsimu import ur
 
 
 class BoxModelSystem3Test(TestCase):
     """Test boxsimu framework using an intermediate complex box model."""
 
     def setUp(self, *args, **kwargs):
-        self.system = boxmodelsystem3.get_system(ur)
+        self.system = boxmodelsystem3.get_system()
         self.solver = Solver(self.system)
         self.box1 = self.system.boxes.box1
         self.box2 = self.system.boxes.box2
@@ -93,6 +92,35 @@ class BoxModelSystem3Test(TestCase):
 
     def test_concentration(self):
         pass
+
+    #####################################################
+    # Reaction Functions
+    #####################################################
+    
+    def test_reaction_get_reverse_reaction(self):
+        reaction1 = self.system.reactions[0]
+        reverse1 = reaction1.get_reverse_reaction('reverse reaction 1')
+        self.assertEqual(reverse1.name, 'reverse reaction 1')
+        self.assertEqual(reverse1.variable_reaction_coefficients.get(self.A, 0), 
+                -reaction1.variable_reaction_coefficients.get(self.A, 0)) 
+        self.assertEqual(reverse1.variable_reaction_coefficients.get(self.B, 0), 
+                -reaction1.variable_reaction_coefficients.get(self.B, 0)) 
+        self.assertEqual(reverse1.variable_reaction_coefficients.get(self.C, 0), 
+                -reaction1.variable_reaction_coefficients.get(self.C, 0)) 
+        self.assertEqual(reverse1.variable_reaction_coefficients.get(self.D, 0), 
+                -reaction1.variable_reaction_coefficients.get(self.D, 0)) 
+
+        reaction2 = self.system.reactions[1]
+        reverse2 = reaction2.get_reverse_reaction('reverse reaction 2')
+        self.assertEqual(reverse2.name, 'reverse reaction 2')
+        self.assertEqual(reverse2.variable_reaction_coefficients.get(self.A, 0), 
+                -reaction2.variable_reaction_coefficients.get(self.A, 0)) 
+        self.assertEqual(reverse2.variable_reaction_coefficients.get(self.B, 0), 
+                -reaction2.variable_reaction_coefficients.get(self.B, 0)) 
+        self.assertEqual(reverse2.variable_reaction_coefficients.get(self.C, 0), 
+                -reaction2.variable_reaction_coefficients.get(self.C, 0)) 
+        self.assertEqual(reverse2.variable_reaction_coefficients.get(self.D, 0), 
+                -reaction2.variable_reaction_coefficients.get(self.D, 0)) 
 
     #####################################################
     # Base Functions 

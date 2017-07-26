@@ -66,6 +66,9 @@ from .box import Box
 from .condition import Condition
 from .entities import Fluid, Variable
 from .process import Process, Reaction
-from .transport import Flow, Flux
+from .solution import Solution
+from .solver import Solver
 from .system import BoxModelSystem
+from .transport import Flow, Flux
+
 

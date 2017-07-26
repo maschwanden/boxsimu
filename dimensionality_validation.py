@@ -15,10 +15,9 @@ Dimensions:
 
 from pint.errors import DimensionalityError
 
-from pint import UnitRegistry
-ur = UnitRegistry()
 
 from . import errors as bs_errors # import WrongUnitsDimensionalityError
+from . import ur
 
 
 def is_quantity_of_dimensionality(quantity, *units):
@@ -100,11 +99,11 @@ def raise_if_not(quantity, *units):
     dimensions = [u.dimensionality for u in units]
     if not is_quantity_of_dimensionality(quantity, *units):
         if len(units) > 1:
-            raise WrongUnitsDimensionalityError('Invalid units {}: '
+            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}: '
                     'Must be given in one of the following dimensions: '
                     '{}.'.format(quantity.dimensionality, dimensions))
         else:
-            raise WrongUnitsDimensionalityError('Invalid units {}: Must '
+            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}: Must '
                     'be given in on of the following dimensions: {}'.format(
                         quantity.dimensionality, dimensions))
 
@@ -153,7 +152,7 @@ def raise_if_not_dimless(quantity):
 # VECTOR/List validation methods
 
 
-def get_single_shared_unit(units, default_units):
+def get_single_shared_unit(units, default_units=1):
     """Returns unit if all units of list are identical.
 
     If list is empty return the default units. If the list contains

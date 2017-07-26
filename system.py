@@ -120,6 +120,8 @@ class BoxModelSystem:
         # box to a temporary list and add unique variables to all boxes even
         # if they are just defined in one.
         self.variables = self._get_variable_attr_dict()
+        self.variable_names = list(self.variables.keys())
+        self.variable_names.sort()
 
         # Set variable and box ID's for every variable in every box
         self._set_box_and_variable_ids()
@@ -176,6 +178,11 @@ class BoxModelSystem:
     @property
     def box_list(self):
         return [self.boxes[box_name] for box_name in self.box_names]
+
+    @property
+    def variable_list(self):
+        return [self.variables[variable_name] 
+                for variable_name in self.variable_names]
 
     @property
     def N_boxes(self):
@@ -466,6 +473,7 @@ class BoxModelSystem:
         """
         A = np.zeros([self.N_boxes, self.N_boxes])
         flows = flows or self.flows
+        flows = [flow for flow in flows if flow.tracer_transport]
 
         flow_concentrations = self.get_variable_flow_concentration_1Darray(
                 variable, time)
@@ -479,6 +487,7 @@ class BoxModelSystem:
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             concentration = flow_concentrations[flow.source_box.id]
             bs_dim_val.raise_if_not_dimless(concentration)
+
 
             variable_flow_rate = (fluid_flow_rate *
                     concentration).to_base_units()
@@ -762,6 +771,8 @@ class BoxModelSystem:
         q_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return q * q_units
 
+
+
     # REACTION
 
     def get_reaction_rate_2Darray(self, time, reaction):
@@ -801,8 +812,8 @@ class BoxModelSystem:
         show the reaction rates of the same reaction. If for example in one 
         box there are four reactions: R1, R2, R3, R4. Then the third axis of 
         this box will contain: [R1,R2,R3,R4]. For another box that only has
-        R3 the third axis will look: [R3,0,0,0]. Thus the third axis is filled
-        from 0.
+        R3 the third axis will look: [0,0,R3,0]. Thus the the same reaction
+        always has the same index.
 
         Args:
             time (pint.Quantity [T]): Time at which the fluxes shall be 
