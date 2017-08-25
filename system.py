@@ -18,11 +18,12 @@ from pint.errors import DimensionalityError
 
 # import all submodules with prefix 'bs' for BoxSimu
 from . import box as bs_box
-from . import transport as bs_transport
-from . import process as bs_process
 from . import condition as bs_condition
-from . import solution as bs_solution
 from . import dimensionality_validation as bs_dim_val
+from . import process as bs_process
+from . import solution as bs_solution
+from . import solver as bs_solver
+from . import transport as bs_transport
 from . import utils as bs_utils
 from . import visualize as bs_visualize
 
@@ -855,4 +856,6 @@ class BoxModelSystem:
 
     # SOLVER functions
 
-            
+    def solve(self, total_integration_time, dt):
+        solver = bs_solver.Solver(self)
+        return solver.solve(total_integration_time, dt)

@@ -1,37 +1,75 @@
 TODO stand 27.07.2017:
+
+Section User API / User GUI
+---------------------------------------------
 -> Pickle boxsimu objects
--> numba / cython to speed up the simulation time
--> There are some major bugs in the code (variable concentration increase exponentially with time)
--> Logging functionality
 -> Write more built ins
 -> visualization of the system (flows and fluxes are not implemented now)
+-> Logging functionality
 -> Pyside Gui (or PyQt5)
--> Are some parts solvable analytically? then some terms could be calculated much faster.
 -> What plots could be helpful? What analysis tools?
 -> Kinetic reactions -> with equilibrium constants
--> 1D Boxes
--> Parallel computing?
--> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating in reactions etc....)
--> Maybe adjust timestep dynamically in the solver: if some conditions are met that could affect the quality of the simulation-> make the timestep half as large...
--> stability criterion for timesteps?!
+-> 1D Boxes -> Write a Connector Class -> This should be where boxes are connected to the outside of the system and they should mediate between boxes
+       and fluxes that ask after the concentrations that go out of this box.
+-> Maybe write a parameter that specifies how much a variable is active ( that means how much of the total mass at a certain moment is paricipating 
+   in reactions etc....)
 -> make interface with the rate lambda functions nicer
--> Reevaluate the project: Is the scientific theory "correct"? Is the code consistent with this theory?
 -> Make concentration plots in addition to "pure" mass plots.
 -> Improve Validation of User input? Can a user insert some information somewhere that raises an Error?
 -> Validate the rate functions that a user gives.
--> also write some info functions for the terminal
--> improve the documentation of the function, classes and inline comments
+-> Also write some info functions for the terminal
+-> Helper function that could facilitate the setup of a system for common cases.
+-> Make some critical assumtion that the programm meets changeable by the user by some System parameters or Solver parameters or global config parameters.
+-> Allow other tracers in the system than only substances (Variables): -> For example: it should be possible to trace heat (and accordingly temperature)
+-> Plotting: Plot rates (e.g. flows, fluxes, processes, reactions), Plot time derivatives of all possible quantities.
+-> Maybe let the user give some equation of aggregate state for substances so that a fraction of the total mass of some substance 
+    will not be transported with the flow since it is not dissolved. If this is implemented the user should also be able to plot
+    just some parts of this substance in the plots (e.g. plot rate of change of substance A in all boxes BUT only the solid part).
+
+
+Section Efficiency / Speed of simulation
+---------------------------------------------
+-> Profile the Program : Translate critical parts to cython / C / Fortran or use numba
+-> numba / cython to speed up the simulation time -> Maybe just check the dimensions and units of the user given rates etc. once. afterwards just 
+       work with floats of base_units! Then these calculations could be much faster! Maybe also write the functions of the system class as external
+       functions and just call these functions within the class methods ( this way i could use the @jit ); on the other hand maybe i could just use 
+       a @... for the whole system class ... HOWEVER: First profile the program
+       Maybe dont run all the System.get_variable.... functions every timestep. A lot of overhead. Can the rates be calculated more directly? 
+-> Are some parts solvable analytically? then some terms could be calculated much faster.
+-> Parallel computing?
+-> Maybe adjust timestep dynamically in the solver: if some conditions are met that could affect the quality of the simulation-> make the timestep half as large...
+-> Solver should solve the result to some file from time to time so that one can continue a simulation if it is stopped at a time.
+-> In general: some parts could be solved analytically almost for sure! Use sympy or scipy!
+-> Only check the user input once for the correctness of the dimensionality of parameters. Once these values are known to be correct calculate derived quantites
+   directly from these verified ones.
+
+
+Section Correctness / Testing of the Project
+---------------------------------------------
+-> There are some major bugs in the code (variable concentration increase exponentially with time)
+-> stability criterion for timesteps?!
+-> Reevaluate the project: Is the scientific theory "correct"? Is the code consistent with this theory?
+-> Why does the variable mass/concentration sometimes fluctuate even at convergence? Could this be improved?
+-> For different total_integration time and timesteps different results come out
+-> Test whether BoxSimu 'correctly' simulates the N-P and N-P-Z Model from Chapter 4 of Ocean Biogeochmical Dyanamics, Sarmiento and Gruber 
+   (2006) and make an example jupyter notebook out of these models if they correctly depict the model.
+-> Siegenthaler and Wenk (1989) developed a simple four box model that highliths the relative roles of changes in biological productivity 
+   and upwelling. (Gruber and Sarmiento, 2006 citation). Maybe have a look at this model and try to simulate it.
+
+
+Section Pulication
+---------------------------------------------
+-> Improve the documentation of the function, classes and inline comments
 -> Write a real documentation pdf
 -> Write a interactive sphinx docu
 -> Load the project to Github
 -> Improve tests
 -> Write some Tutorial/Example jupyter notebooks
--> Helper function that could facilitate the setup of a system for common cases.
--> Make some critical assumtion that the programm meets changeable by the user by some System parameters or Solver parameters or global config parameters.
--> Solver should solve the result to some file from time to time so that one can continue a simulation if it is stopped at a time.
--> Why does the variable mass/concentration sometimes fluctuate even at convergence? Could this be improved?
--> For different total_integration time and timesteps different results come out
--> In general: some parts could be solved analytically almost for sure! Use sympy or scipy!
+-> Make a package of the project and load it into the python repo
+-> Write several Examples and save them with the resulting plots as html and jupyter notebook
+-> Write a (ausführliches) tutorial jupyter notebook where all classes and steps and options in writing a boxmodelsystem are explained.
 
 
 
+
+       
