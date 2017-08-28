@@ -227,16 +227,16 @@ class BoxModelSystem:
             condition = self.global_condition
             context = condition
         
-        for box_name, box in self.boxes.items():
-            setattr(context, box.name, AttrDict({
-                    'condition': box.condition, 
-                    'variables': AttrDict({variable_name: variable.mass 
-                        for variable_name, variable in box.variables.items()}),
-                    'box': box}))
-        setattr(context, 'global_condition', self.global_condition)
-        # Return a deep copy of the context in order to prevent user-defined
-        # functions to alter the conditions.
-        return copy.deepcopy(context)
+        setattr(context, 'system', self)
+
+#        for box_name, box in self.boxes.items():
+#            setattr(context, box.name, AttrDict({
+#                    'condition': box.condition, 
+#                    'variables': AttrDict({variable_name: variable.mass 
+#                        for variable_name, variable in box.variables.items()}),
+#                    'box': box}))
+#        setattr(context, 'global_condition', self.global_condition)
+        return context
 
     def get_global_context(self):
         return self.get_box_context()

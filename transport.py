@@ -39,7 +39,11 @@ class BaseTransport:
         self.name = name
         self.source_box = source_box
         self.target_box = target_box
-        self.rate = rate
+        if callable(rate):
+            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
+        else:
+            bs_dim_val.raise_if_not_mass_per_time(rate)
+            self.rate = rate
 
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)

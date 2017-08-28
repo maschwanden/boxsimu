@@ -60,7 +60,11 @@ class Process(BaseProcess):
     def __init__(self, name, variable, rate):
         self.name = name
         self.variable = variable
-        self.rate = rate
+        if callable(rate):
+            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
+        else:
+            bs_dim_val.raise_if_not_mass_per_time(rate)
+            self.rate = rate
 
     def __call__(self, time, context):
         """Return rate of the process [M/T]."""
@@ -126,7 +130,11 @@ class Reaction(BaseProcess):
         for variable, coeff in variable_reaction_coefficients.items():
             self.variables.append(variable)
 
-        self.rate = rate
+        if callable(rate):
+            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
+        else:
+            bs_dim_val.raise_if_not_mass_per_time(rate)
+            self.rate = rate
 
     def __call__(self, time, context, variable):
         """Return rate of the variable transformation [M/T]."""

@@ -19,7 +19,6 @@ base_config = {}
 
 # LOAD BASE CONFIG
 if os.path.exists('config.yaml'):
-    print('YEAH basic config file found')
     base_config = yaml.safe_load(open('config.yaml', 'r')) 
 
 # LOAD SVG VISUALIZATION CONFIG

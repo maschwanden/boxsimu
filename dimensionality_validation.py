@@ -12,9 +12,9 @@ Dimensions:
     N: Number/Moles
 
 """
+from functools import wraps
 
 from pint.errors import DimensionalityError
-
 
 from . import errors as bs_errors # import WrongUnitsDimensionalityError
 from . import ur
@@ -148,9 +148,7 @@ def raise_if_not_dimless(quantity):
     raise_if_not(quantity, ur.dimensionless)
 
 
-
-# VECTOR/List validation methods
-
+# VECTOR/List validation
 
 def get_single_shared_unit(units, default_units=1):
     """Returns unit if all units of list are identical.
@@ -168,3 +166,30 @@ def get_single_shared_unit(units, default_units=1):
         raise DimensionalityError(units_set.pop(), units_set.pop())
     return res_units
 
+
+# Function validation
+
+def decorator_raise_if_not(*units):
+    """Decorator to check the dimensionality of the function's return value."""
+    try:
+        iterator = iter(units)
+    except TypeError:
+        dimensionalities = units.dimensionality
+    else:
+        dimensionalities = [u.dimensionality for u in units]
+
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            result = function(*args, **kwargs)
+            if not is_quantity_of_dimensionality(result, *units):
+                raise ValueError('The user-defined function <{}> doesn\'t '
+                        'return a quantity with the needed '
+                        'dimensionality: {}'.format(
+                            function.__name__, dimensionalities))
+            return result
+        return wrapper
+    return decorator
+
+decorator_raise_if_not_mass_per_time = decorator_raise_if_not(
+        ur.kg / ur.second)

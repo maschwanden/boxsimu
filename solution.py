@@ -66,7 +66,7 @@ class Solution:
 
         self.default_figsize = [8,8]
 
-    def plot_fluid_masses(self, boxes=None, figsize=None):
+    def plot_fluid_masses(self, boxes=None, figsize=None, yaxis_log=True):
         if not self.time_units:
             self.time_units = self.time[0].units
         if not self.time_magnitude:
@@ -75,12 +75,17 @@ class Solution:
         if not figsize:
             figsize = self.default_figsize
 
+        if yaxis_log:
+            yaxis_log = 'log'
+        else:
+            yaxis_log = None
+
         fig, ax = self._get_subplots(
                 title='Fluid Masses',
                 xlabel=self.time_units,
                 ylabel='kg',
                 figsize=figsize,
-                yaxis_scale='log')
+                yaxis_scale=yaxis_log)
 
         for box_name, ts in self.ts.items():
             masses = self.ts[box_name]['mass']
@@ -91,7 +96,8 @@ class Solution:
         ax.legend()
         return fig, ax
 
-    def plot_variable_mass_of_all_boxes(self, variable, figsize=None):
+    def plot_variable_mass_of_all_boxes(self, variable, figsize=None, 
+            yaxis_log=True):
         if not self.time_units:
             self.time_units = self.time[0].units
         if not self.time_magnitude:
@@ -100,12 +106,17 @@ class Solution:
         if not figsize:
             figsize = self.default_figsize
 
+        if yaxis_log:
+            yaxis_log = 'log'
+        else:
+            yaxis_log = None
+
         fig, ax = self._get_subplots(
                 title='Variable Mass of {}'.format(variable.name),
                 xlabel=self.time_units,
                 ylabel='kg',
                 figsize=figsize,
-                yaxis_scale='log')
+                yaxis_scale=yaxis_log)
 
         for box_name, ts in self.ts.items():
             masses = self.ts[box_name][variable.name]
@@ -115,7 +126,8 @@ class Solution:
         ax.legend()
         return fig, ax
 
-    def plot_variable_concentration_of_all_boxes(self, variable, figsize=None):
+    def plot_variable_concentration_of_all_boxes(self, variable, 
+            figsize=None, yaxis_log=True):
 
         if not self.time_units:
             self.time_units = self.time[0].units
@@ -125,12 +137,17 @@ class Solution:
         if not figsize:
             figsize = self.default_figsize
 
+        if yaxis_log:
+            yaxis_log = 'log'
+        else:
+            yaxis_log = None
+
         fig, ax = self._get_subplots(
                 title='Variable Concentration of {}'.format(variable.name),
                 xlabel=self.time_units,
                 ylabel='kg/kg',
                 figsize=figsize,
-                yaxis_scale='log')
+                yaxis_scale=yaxis_log)
 
         for box_name, ts in self.ts.items():
             masses = [mass.to_base_units().magnitude 
@@ -147,7 +164,9 @@ class Solution:
         ax.legend()
         return fig, ax
 
-    def plot_all_variable_mass_of_box(self, box, figsize=None):
+    def plot_all_variable_mass_of_box(self, box, figsize=None, 
+            yaxis_log=True):
+
         if not self.time_units:
             self.time_units = self.time[0].units
         if not self.time_magnitude:
@@ -155,24 +174,29 @@ class Solution:
 
         if not figsize:
             figsize = self.default_figsize
+
+        if yaxis_log:
+            yaxis_log = 'log'
+        else:
+            yaxis_log = None
 
         fig, ax = self._get_subplots(
                 title='Total Variable Masses',
                 xlabel=self.time_units,
                 ylabel='kg',
                 figsize=figsize,
-                yaxis_scale='log')
+                yaxis_scale=yaxis_log)
 
         for variable in self.system.variable_list:
             var_mass += self.ts[box.name][variable.name]
             mass_magnitude = [mass.magnitude for mass in var_mass]
             ax.plot(self.time_magnitude, mass_magnitude,
                     label='Variable {}'.format(variable.name))
-    
         ax.legend()
         return fig, ax
 
-    def plot_total_variable_masses(self, figsize=None):
+    def plot_total_variable_masses(self, figsize=None, yaxis_log=True):
+
         if not self.time_units:
             self.time_units = self.time[0].units
         if not self.time_magnitude:
@@ -181,12 +205,17 @@ class Solution:
         if not figsize:
             figsize = self.default_figsize
 
+        if yaxis_log:
+            yaxis_log = 'log'
+        else:
+            yaxis_log = None
+
         fig, ax = self._get_subplots(
                 title='Total Variable Mass',
                 xlabel=self.time_units,
                 ylabel='kg',
                 figsize=figsize,
-                yaxis_scale='log')
+                yaxis_scale=yaxis_log)
 
         for variable in self.system.variable_list:
             var_masses = np.zeros(len(self.time_magnitude))

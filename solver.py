@@ -101,12 +101,13 @@ class Solver:
                 end_time - start_time))
         return sol
 
-    def solve(self, total_integration_time, dt):
+    def solve(self, total_integration_time, dt, debug=False):
         print('Start solving the box model...')
         print('- total integration time: {}'.format(total_integration_time))
         print('- dt (time step): {}'.format(dt))
 
-        pdb.set_trace()
+        if debug:
+            pdb.set_trace()
 
         self.system = copy.deepcopy(self._system_initial)
 

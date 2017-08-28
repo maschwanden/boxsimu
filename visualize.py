@@ -9,46 +9,64 @@ Created on Thu Jul 13 15:57:03 2017
 import os
 import re
 import copy
-import yaml
 import importlib
 import svgwrite
 from svgwrite import cm, mm
 import numpy as np
 
 from . import utils as bs_utils
-from . import config as bs_config
-from .config import svg_visualization_config
-from .config import svg_visualization_config as svg_config
 
 
 class BoxModelSystemSvgHelper:
+    """Helper Class to visualize/plot a BoxModelSystem."""
+
     def __init__(self):
-        config = self._get_svg_visualization_config()
-        self.box_rect_width = config['box_rect_width_min']
-        self.box_rect_height = config['box_rect_height_min']
+        self.box_rect_width = 300
+        self.box_rect_height = 300
         
-        self.system_boxes_arrangement_type = \
-                config['system_boxes_arrangement_type']
-        self.system_half_circle_radius = config['system_half_circle_radius']
-        self.system_half_circle_radius_factor = \
-                config['system_half_circle_radius_factor']
-        self.system_circle_radius = config['system_circle_radius']
-        self.system_circle_radius_factor = \
-                config['system_circle_radius_factor']
-        self.system_boxes_arrangement_angle_offset = \
-                config['system_boxes_arrangement_angle_offset']
+        self.system_boxes_arrangement_type = 'circle'
+        self.system_boxes_arrangement_radius = None
+        self.system_boxes_arrangement_factor = 1.7
+        self.system_boxes_arrangement_angle_offset = 0
+
+        self.flow_stroke_width = 4
+        self.flow_color = 'darkblue'
+        self.flow_arrow_triangle_size = 4
+        self.flux_stroke_width = 4
+        self.flux_color = 'darkblue'
+        self.flux_arrow_triangle_size = 10
 
         self.box_svg_helpers = None
 
-        self.dwg = svgwrite.Drawing()
+        self.dwg = None
    
     def save_system_as_svg(self, system, filename):
+        """Save the visualization of system as a SVG file."""
+
+        if system.N_boxes == 2:
+            self.system_boxes_arrangement_factor = 1.1
+        elif system.N_boxes == 3:
+            self.system_boxes_arrangement_factor = 1.2
+        elif system.N_boxes == 4:
+            self.system_boxes_arrangement_factor = 1.4
+        elif system.N_boxes == 5:
+            self.system_boxes_arrangement_factor = 1.6
+        elif system.N_boxes == 6:
+            self.system_boxes_arrangement_factor = 1.8
+
+        # self.dwg = svgwrite.Drawing(size=self._get_system_svg_size())
+        self.dwg = svgwrite.Drawing(size=('32cm', '10cm'), debug=True)
+        self.dwg.viewbox(-100, 0, 600, 400)
+
         if not self.box_svg_helpers:
             self.box_svg_helpers = self._get_system_box_svg_helpers(system)
-        self._save_group_as_svg(self.get_system_svg_group(system), filename)
+
+        system_svg_group = self.get_system_svg_group(system)
+        self._save_group_as_svg(system_svg_group, filename)
 
     def get_system_svg_group(self, system):
-        """Return the SVG representation of the BoxModelSystem instance."""
+        """Return a SVG representation of the BoxModelSystem instance."""
+
         if not self.box_svg_helpers:
             self.box_svg_helpers = self._get_system_box_svg_helpers(system)
         group_id = bs_utils.get_valid_svg_id_from_string(system.name)
@@ -62,6 +80,9 @@ class BoxModelSystemSvgHelper:
         return group
 
     def save_box_as_svg(self, box, filename=None):
+        """Return a SVG representation of the Box instance."""
+
+        self.dwg = svgwrite.Drawing(size=self._get_box_svg_size())
         self._save_group_as_svg(self.get_box_svg_group(box), filename)
 
     def get_box_svg_group(self, box):
@@ -75,11 +96,9 @@ class BoxModelSystemSvgHelper:
 
     # HELPER functions
 
-    def _get_svg_visualization_config(self):
-        importlib.reload(bs_config)
-        return bs_config.svg_visualization_config
-
     def _save_group_as_svg(self, group, filename):
+        """Save a svgwrite group instance as a SVG file."""
+
         # dwg = svgwrite.Drawing(filename=filename)
         dwg = copy.deepcopy(self.dwg)
         dwg.filename = filename
@@ -87,7 +106,8 @@ class BoxModelSystemSvgHelper:
         dwg.save()
 
     def _get_system_box_svg_helpers(self, system):
-        """Return BoxSvgHelper for all boxes of the system."""
+        """Return a list of BoxSvgHelper for all boxes of the system."""
+
         box_positions = self._get_box_positions(system.N_boxes)
         box_svg_helpers = [None] * system.N_boxes
         for box_name, box in system.boxes.items():
@@ -133,28 +153,20 @@ class BoxModelSystemSvgHelper:
     def _get_box_positions(self, N_nodes):
         positions = []
         angle_offset = self.system_boxes_arrangement_angle_offset
+        radius = self.system_boxes_arrangement_radius
+        if not radius:
+            radius_factor = self.system_boxes_arrangement_factor
+            radius = radius_factor * max(self.box_rect_width, 
+                    self.box_rect_height)
 
-        if self.system_boxes_arrangement_type == 'half_circle':
-            radius = self.boxes_half_circle_radius
-            if not radius:
-                radius_factor = self.system_half_circle_radius_factor
-                radius = radius_factor * max(box_rect_width, box_rect_height)
-            for i in range(N_nodes):
+        for i in range(N_nodes):
+            if self.system_boxes_arrangement_type == 'half_circle':
                 angle = (i * np.pi / (N_nodes-1)) + angle_offset
-                x = radius * np.cos(angle) 
-                y = radius * np.sin(angle)
-                positions.append((x,y))
-        else: # if self.system_boxes_arrangement_type == 'circle':
-            radius = self.system_half_circle_radius
-            if not radius:
-                radius_factor = self.system_circle_radius_factor
-                radius = radius_factor * max(self.box_rect_width, 
-                        self.box_rect_height)
-            for i in range(N_nodes):
+            else: # if self.system_boxes_arrangement_type == 'circle':
                 angle = (i * 2 * np.pi / (N_nodes)) + angle_offset
-                x = radius * np.cos(angle) 
-                y = radius * np.sin(angle)
-                positions.append((x,y))
+            x = radius * np.cos(angle) 
+            y = radius * np.sin(angle)
+            positions.append((x,y))
         return positions
 
     def _adjust_box_svg_helper_widths(self, helpers):
@@ -221,11 +233,14 @@ class BoxModelSystemSvgHelper:
             trg_point = self._get_conncection_point_relative_to_reference_point(
                             trg_helper, (0,0))
         
-        arrow = self._get_arrow(start=src_point, end=trg_point, stroke='green')
+        arrow = self._get_arrow(start=src_point, end=trg_point, 
+                stroke_color=self.flow_color, 
+                stroke_width=self.flow_stroke_width,
+                triangle_size=self.flow_arrow_triangle_size)
         return arrow
 
-    def _get_arrow(self, start, end, stroke):
-        triangle_size=10
+    def _get_arrow(self, start, end, stroke_color, stroke_width, 
+            triangle_size):
         arrow_vector = end - start
         arrow_unit_vector = arrow_vector / np.linalg.norm(arrow_vector)
         rot90_matrix = self._get_rot90_matrix()
@@ -234,9 +249,13 @@ class BoxModelSystemSvgHelper:
         triangle_point2 = 0.5 * triangle_size * arrow_unit_normal_vector 
         triangle_point3 = -0.5 * triangle_size * arrow_unit_normal_vector 
 
-        arrow = self.dwg.line(start=start, end=end, stroke=stroke)
-        marker = self.dwg.marker(insert=0.9*arrow_unit_vector*triangle_size, size=(10,10))
-        marker.add(self.dwg.polygon([triangle_point1, triangle_point2, triangle_point3], fill='red'))
+        end[0] += triangle_size
+        arrow = self.dwg.line(start=start, end=end, stroke=stroke_color, 
+                stroke_width=stroke_width)
+        marker = self.dwg.marker(insert=0.75*arrow_unit_vector*triangle_size, 
+                size=(triangle_size, triangle_size))
+        marker.add(self.dwg.polygon([triangle_point1, triangle_point2, 
+            triangle_point3], fill=stroke_color))
         self.dwg.defs.add(marker)
         arrow.set_markers((None, None, marker))
         return arrow
@@ -245,6 +264,12 @@ class BoxModelSystemSvgHelper:
         angle = np.deg2rad(90)
         return np.array([[np.cos(angle), np.sin(angle)],
                          [-np.sin(angle), np.cos(angle)]])
+
+    def _get_system_svg_size(self):
+        return (100, 100)
+
+    def _get_box_svg_size(self):
+        return (100, 100)
 
 
 class BoxSvgHelper:
@@ -261,49 +286,37 @@ class BoxSvgHelper:
         self._height = height
         self._width = width
 
-        # load default config
-        config = self._get_svg_visualization_config()
-
         self.text_lines = text_lines
-        self.text_font_size = config['box_text_font_size']
-        self.text_font_color = config['box_text_font_color']
-        self.text_alignement = config['box_text_alignement']
+        self.text_font_size = 12
+        self.text_font_color = 'black'
+        self.text_alignement = 'left'
 
         self.title = title
-        self.title_font_size = config['box_title_font_size']
-        self.title_font_color = config['box_title_font_color']
-        self.title_alignement = config['box_title_alignement']
+        self.title_font_size = 24
+        self.title_font_color = 'black'
+        self.title_alignement = 'middle'
         
-        self.child_title_font_size = config['box_child_title_font_size']
-        self.child_title_font_color = config['box_child_title_font_color']
-        self.child_title_alignement = config['box_child_title_alignement']
+        self.child_title_font_size = 15
+        self.child_title_font_color = 'black'
+        self.child_title_alignement = 'left'
 
-        if config['box_title_position'] == 'extern':
-            self.title_extern = True
-        else:
-            self.title_extern = False
+        self.title_extern = True
+        self.child_title_extern = True
 
-        if config['box_child_title_position'] == 'extern':
-            self.child_title_extern = True
-        else:
-            self.child_title_extern = False
-
-        self.color = config['box_rect_color']
-        self.opacity = config['box_rect_opacity']
-        self.stroke_color = config['box_rect_stroke_color']
-        self.stroke_width = config['box_rect_stroke_width']
-        self.stroke_opacity = config['box_rect_stroke_opacity']
+        self.color = 'lightgrey'
+        self.opacity = 0.7
+        self.stroke_color = 'black'
+        self.stroke_width = 5
+        self.stroke_opacity = 1
     
-        self.child_relative_width = \
-                config['box_child_rect_width_relative']
-        self.child_color = config['box_child_rect_color']
-        self.child_opacity = config['box_child_rect_opacity']
-        self.child_stroke_color = config['box_child_rect_stroke_color']
-        self.child_stroke_width = config['box_child_rect_stroke_width']
-        self.child_stroke_opacity = \
-                config['box_child_rect_stroke_opacity']
+        self.child_relative_width = 0.925
+        self.child_color = 'darkgrey'
+        self.child_opacity = 0.5
+        self.child_stroke_color = 'white'
+        self.child_stroke_width = 3
+        self.child_stroke_opacity = 1
 
-        self._content_absolute_margin = config['box_content_margin_absolute']
+        self._content_absolute_margin = 10
         
         # Maximal widht of the character 'W' in the title and text
         self.title_max_W_width = self.title_font_size
@@ -316,10 +329,6 @@ class BoxSvgHelper:
 
         self.dwg = svgwrite.Drawing()
         self.group = self.dwg.g(id=group_id)
-
-    def _get_svg_visualization_config(self):
-        importlib.reload(bs_config)
-        return bs_config.svg_visualization_config
 
     @property
     def width(self):
@@ -651,9 +660,4 @@ class BoxSvgHelper:
             boxrect._x = child_x
             boxrect._content_absolute_margin = self.content_absolute_margin
             boxrect._adjust_children_width()
-
-
-        
-
-
 

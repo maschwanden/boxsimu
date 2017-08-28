@@ -22,17 +22,19 @@ class Box:
     """Box in a single- or multibox system.
 
     A Box contains one Fluid and zero to multiple Variables.
-    Processes and Reactions can be defined that alter the .
+    Boxes can exchange Fluid and Variable mass with each other.
+    Additionally, Processes and Reactions can be defined that alter the 
+    Variable mass in a Box.
     
     Args:
-        name (str): Valid python expression used to access the box.
-        name_long (str): Human readable string describing the box.     
+        name (str): Valid python expression used to identify the box.
+        name_long (str): Human readable string describing the box.   
         fluid (Fluid): Fluid that represents the solvent of the box.
-        condition (Condition): Conditions of the box. Used for the evaluation
-            of user-defined process/reaction/flow/flux rates.
+        condition (Condition): Condition of the box. Used for the evaluation
+            of user-defined Process-/Reaction-/Flow-/Flux-rates.
         variables (list of Variable): Variables that are found within the box.
-            The Variable instances must be quantified. That means they must
-            be generated using the method q() on a Variable instance.
+            The Variable instances must be quantified (that means they must
+            be generated using the method q() on a Variable instance).
             Defaults to an empty list.
         processes (list of Process): Processes that take place in the box.
             Defaults to an empty list.
@@ -42,23 +44,20 @@ class Box:
     Attributes:
         id (int): ID of the box within a BoxModelSystem. Note: This
             Attribute is set by the BoxModelSystem instance that
-            contains a box.
-        name (str): Valid python expression used to access the box.
+            contains a box (should not be set by the user!).
+        name (str): Valid python expression used to identify the box.
         name_long (str): Human readable string describing the box.     
         fluid (Fluid): Fluid that represents the solvent of the box.
-        condition (Condition): Conditions of the box. Used for the evaluation
-            of user-defined process/reaction/flow/flux rates.
+        condition (Condition): Condition of the box. Used for the evaluation
+            of user-defined Process-/Reaction-/Flow-/Flux-rates.
         variables (list of Variable): Variables that are found within the box.
         processes (list of Process): Processes that take place in the box.
         reactions (list of Reaction): Reactions that take place in the box.
 
     """
 
-    name = bs_descriptors.ImmutableNameDescriptor()
-
     def __init__(self, name, name_long, fluid, condition=None, variables=None,
                  processes=None, reactions=None):
-        self.id = None
 
         self.name = name
         self.name_long = name_long
@@ -101,6 +100,17 @@ class Box:
         if isinstance(other, self.__class__):
             return self.name < other.name
         return false
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        # Make id an immutable attribute
+        if hasattr(self, '_id'):
+            raise AttributeError('Can\'t set immutable attribute')
+        self._id = value
 
     @property
     def name(self):
@@ -151,7 +161,7 @@ class Box:
             concentration = self.variables[variable.name].mass / volume
             concentration = concentration.to_base_units()
             return concentration
-        return 0 * self.pint_ur.dimensionless
+        return 0 * self.pint_ur.kg / self.pint_ur.meter**3
 
     # REPRESENTATION functions
     

@@ -50,7 +50,6 @@ __all__ = [
 
 from . import box
 from . import condition
-from . import config
 from . import entities
 from . import errors
 from . import dimensionality_validation

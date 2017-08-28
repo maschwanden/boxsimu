@@ -7,6 +7,7 @@ Created on Thu Jul 24 2017 at 11:08UTC
 """
 
 from . import dimensionality_validation as bs_dim_val
+from keyword import iskeyword
 
 
 class PintQuantityDescriptor:
@@ -21,21 +22,20 @@ class PintQuantityDescriptor:
     
     def __set__(self, instance, value):
         if instance is None: return self
+        if value is None: return 
         if not callable(value):
             bs_dim_val.raise_if_not(value, self.units)
         setattr(instance, self.name, value)
 
 
-
-class MassDescriptor(PintQuantityDescriptor):
+class QuantifiedPintQuantityDescriptor(PintQuantityDescriptor):
     """Descriptor to check correct units of mass-attributes."""
     def __set__(self, instance, value):
         instance._quantified = True
         super().__set__(instance, value)
 
-
 class ImmutableNameDescriptor:
-    """Desctirpotr to assure that the name attribute is immutable.""" 
+    """Descriptor to assure that the name attribute is immutable.""" 
 
     def __get__(self, instance, instance_type):
         return self._name

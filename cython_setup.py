@@ -5,6 +5,6 @@ from distutils.extension import Extension
 extensions = [Extension("*", ["*.pyx"])]
 
 setup(
-	name = 'BoxSimu Package',
+	name = 'boxsimu Package',
     ext_modules = cythonize(extensions)
 )

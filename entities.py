@@ -30,9 +30,10 @@ class BaseEntity:
 
     """
 
-    mass = bs_descriptors.MassDescriptor('mass', ur.kg, 0*ur.kg)
-    molar_mass = bs_descriptors.PintQuantityDescriptor('mass_mass', 
-            ur.mole/ur.kg, 0*ur.mole/ur.kg)
+    mass = bs_descriptors.QuantifiedPintQuantityDescriptor(
+            'mass', ur.kg, 0*ur.kg)
+    molar_mass = bs_descriptors.PintQuantityDescriptor(
+            'molar_mass', ur.mole/ur.kg, 0*ur.mole/ur.kg)
 
     def __init__(self, name, molar_mass=None):
         self.name = name
@@ -127,6 +128,7 @@ class Fluid(BaseEntity):
             rho = self.rho(context)
         else:
             rho = self.rho
+        bs_dim_val.raise_if_not_density(rho)
         return rho.to_base_units()
 
     def get_volume(self, context=None):

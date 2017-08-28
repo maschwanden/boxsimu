@@ -68,6 +68,7 @@ Section Pulication
 -> Make a package of the project and load it into the python repo
 -> Write several Examples and save them with the resulting plots as html and jupyter notebook
 -> Write a (ausführliches) tutorial jupyter notebook where all classes and steps and options in writing a boxmodelsystem are explained.
+-> Remove all yaml files and replace them by function parameters of the respective functions(classes)
 
 
 
