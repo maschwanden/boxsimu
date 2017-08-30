@@ -25,7 +25,7 @@ class PintQuantityDescriptor:
         if value is None: return 
         if not callable(value):
             bs_dim_val.raise_if_not(value, self.units)
-        setattr(instance, self.name, value)
+        setattr(instance, self.name, value.to_base_units())
 
 
 class QuantifiedPintQuantityDescriptor(PintQuantityDescriptor):

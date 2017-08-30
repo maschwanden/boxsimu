@@ -25,15 +25,15 @@ class BaseEntity:
         
     Attributes:
         name (str): Human readable string describing the entity.
-        mass (pint.Quantity): Mass of the entity.  
-        molar_mass (pint.Quantity): Molar mass of the variable.
+        mass (pint.Quantity [M]): Mass of the entity.  
+        molar_mass (pint.Quantity [N/M]): Molar mass of the variable.
 
     """
 
     mass = bs_descriptors.QuantifiedPintQuantityDescriptor(
             'mass', ur.kg, 0*ur.kg)
     molar_mass = bs_descriptors.PintQuantityDescriptor(
-            'molar_mass', ur.mole/ur.kg, 0*ur.mole/ur.kg)
+            'molar_mass', ur.kg/ur.mole, 0*ur.kg/ur.mole)
 
     def __init__(self, name, molar_mass=None):
         self.name = name

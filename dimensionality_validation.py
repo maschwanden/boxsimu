@@ -187,7 +187,7 @@ def decorator_raise_if_not(*units):
                         'return a quantity with the needed '
                         'dimensionality: {}'.format(
                             function.__name__, dimensionalities))
-            return result
+            return result.to_base_units()
         return wrapper
     return decorator
 

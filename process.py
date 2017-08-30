@@ -60,6 +60,10 @@ class Process(BaseProcess):
     def __init__(self, name, variable, rate):
         self.name = name
         self.variable = variable
+
+        # Add decorator to callable rate that raises exception if return
+        # value is not a pint quantity with dimensionality of [M/T] and
+        # also casts the return value to base units.
         if callable(rate):
             self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
         else:
@@ -130,6 +134,9 @@ class Reaction(BaseProcess):
         for variable, coeff in variable_reaction_coefficients.items():
             self.variables.append(variable)
 
+        # Add decorator to callable rate that raises exception if return
+        # value is not a pint quantity with dimensionality of [M/T] and
+        # also casts the return value to base units.
         if callable(rate):
             self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
         else:
