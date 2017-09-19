@@ -53,6 +53,7 @@ from boxsimu.transport import  Flow, Flux
 from boxsimu.condition import Condition
 from boxsimu.system import BoxModelSystem 
 from boxsimu.process import Process, Reaction
+from boxsimu.solver import Solver
 from boxsimu import utils
 from boxsimu import ur
 

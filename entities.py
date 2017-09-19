@@ -26,7 +26,7 @@ class BaseEntity:
     Attributes:
         name (str): Human readable string describing the entity.
         mass (pint.Quantity [M]): Mass of the entity.  
-        molar_mass (pint.Quantity [N/M]): Molar mass of the variable.
+        molar_mass (pint.Quantity [M/N]): Molar mass of the variable.
 
     """
 

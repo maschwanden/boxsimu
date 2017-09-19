@@ -4,7 +4,17 @@ Created on Thu Jun 23 2016 at 11:08UTC
 
 @author: Mathias Aschwanden (mathias.aschwanden@gmail.com)
 
-Box class that represents a box within a sinlge- or multibox-system.
+A Box represents a box within a sinlge- or multibox-system.
+
+A Box instance represents one compartement in a system that is most often
+assumed to be well mixed (but doesn't have to). It contains information on
+the amount of fluid/solvent (e.g. water) and traced variables, on the 
+running processes and reactions, and the environmental conditions in 
+this compartement.
+
+In the sequence of defining a system with boxsimu:
+  Instances of the class Box are intatiated after all Variables, Fluids, 
+  Processes, and Reactions were created.
 
 """
 
@@ -58,7 +68,6 @@ class Box:
 
     def __init__(self, name, name_long, fluid, condition=None, variables=None,
                  processes=None, reactions=None):
-
         self.name = name
         self.name_long = name_long
 

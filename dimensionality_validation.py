@@ -99,12 +99,12 @@ def raise_if_not(quantity, *units):
     dimensions = [u.dimensionality for u in units]
     if not is_quantity_of_dimensionality(quantity, *units):
         if len(units) > 1:
-            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}: '
-                    'Must be given in one of the following dimensions: '
+            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}!\n'
+                    'Must be given in one of the dimensions: '
                     '{}.'.format(quantity.dimensionality, dimensions))
         else:
-            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}: Must '
-                    'be given in on of the following dimensions: {}'.format(
+            raise bs_errors.WrongUnitsDimensionalityError('Invalid units {}!\n'
+                    'Must be given in one of the dimensions: {}'.format(
                         quantity.dimensionality, dimensions))
 
 

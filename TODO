@@ -3,7 +3,7 @@ TODO stand 27.07.2017:
 Section User API / User GUI
 ---------------------------------------------
 -> Pickle boxsimu objects
--> Write more built ins
+-> Write more built-in instances of the boxsimu classes (e.g. phosphate is a built-in instance of the class Variable that has already set the name and molar mass according to phoshpate)
 -> visualization of the system (flows and fluxes are not implemented now)
 -> Logging functionality
 -> Pyside Gui (or PyQt5)
@@ -15,7 +15,6 @@ Section User API / User GUI
    in reactions etc....)
 -> make interface with the rate lambda functions nicer
 -> Make concentration plots in addition to "pure" mass plots.
--> Improve Validation of User input? Can a user insert some information somewhere that raises an Error?
 -> Validate the rate functions that a user gives.
 -> Also write some info functions for the terminal
 -> Helper function that could facilitate the setup of a system for common cases.
@@ -25,6 +24,8 @@ Section User API / User GUI
 -> Maybe let the user give some equation of aggregate state for substances so that a fraction of the total mass of some substance 
     will not be transported with the flow since it is not dissolved. If this is implemented the user should also be able to plot
     just some parts of this substance in the plots (e.g. plot rate of change of substance A in all boxes BUT only the solid part).
+-> Write a more general Entity -> Dont make a general distinction between a Variable and a Fluid!!! All Variables and Fluids should principaly be able to be used in the same way.
+-> If incorrect units are used: Print out clearer messages! Something like "Must be given in one of the dimensions: [<UnitsContainer({'[mass]': 1.0})>, <UnitsContainer({'[substance]': 1.0})>]." is quite confusing.
 
 
 Section Efficiency / Speed of simulation
@@ -55,6 +56,7 @@ Section Correctness / Testing of the Project
    (2006) and make an example jupyter notebook out of these models if they correctly depict the model.
 -> Siegenthaler and Wenk (1989) developed a simple four box model that highliths the relative roles of changes in biological productivity 
    and upwelling. (Gruber and Sarmiento, 2006 citation). Maybe have a look at this model and try to simulate it.
+-> Improve Validation of User input? Can a user insert some information somewhere that raises an Error?
 
 
 Section Pulication
@@ -74,3 +76,15 @@ Section Pulication
 
 
        
+Next steps
+---------------------------------------------
+-> Learn more about Numerics and also about Numpy efficiency. How to write the most efficient python/cython/C code?
+-> Some more tests. Is it really simulating and solving the systemS correctly?
+-> Have a look at all the possible improvements from above. Which are realistic AND helpful? Implement them.
+-> More profiling and give cython another try. Maybe write the whole solver and also the system class in cython?!
+-> Improve the interface and the documentation. Write a tutorial.
+-> Make it a package. Load it into the python repo.
+
+
+
+-> Write time dependent and time-independent rate functions.

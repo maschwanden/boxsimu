@@ -39,10 +39,6 @@ class BaseTransport:
         self.name = name
         self.source_box = source_box
         self.target_box = target_box
-
-        # Add decorator to callable rate that raises exception if return
-        # value is not a pint quantity with dimensionality of [M/T] and
-        # also casts the return value to base units.
         if callable(rate):
             self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
         else:

@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 from attrdict import AttrDict
 import math
 
-print('hallo')
 from . import solution as bs_solution
 from . import utils as bs_utils
 from . import dimensionality_validation as bs_dim_val
