@@ -32,8 +32,8 @@ class Condition(AttrDict):
             if not key.isidentifier() or iskeyword(key):
                 raise ValueError('Keys must be valid python expressions.')
 
-    def set_surrounding_condition(self, surrounding_condition):
-        """Set all not defined parameters based on the surrounding condition.
+    def set_superset_condition(self, superset_condition):
+        """Set all not defined parameters based on the superset condition.
 
         All key-value-conditions that are not set on the current
         condition but are defined in the surrounding_condition
@@ -41,6 +41,6 @@ class Condition(AttrDict):
         condition and the surrounding_condition the current
         key-value-condtion has priority (thus is not changed).
         """
-        for key, value in surrounding_condition.items():
+        for key, value in superset_condition.items():
             if not hasattr(self, key):
                 setattr(self, key, value)

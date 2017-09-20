@@ -5,6 +5,5 @@ pint
 attrdict
 svgwrite
 PyYAML 
-
-Optioanl but recommended:
 jupyter
+pandas

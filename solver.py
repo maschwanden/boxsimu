@@ -128,6 +128,16 @@ class Solver:
         sol = bs_solution.Solution(total_integration_time, dt, 
                 self.system)
 
+        # Save initial state to solution
+        for box in self.system.box_list:
+            sol.time.append(time)
+            sol.ts[box.name]['mass'].append(box.fluid.mass)
+            sol.ts[box.name]['volume'].append(self.system.get_box_volume(box))
+            for variable in self.system.variable_list:
+                var_name = variable.name
+                sol.ts[box.name][var_name].append(
+                    self.system.boxes[box.name].variables[var_name].mass)
+
         progress = 0
         for i in range(N_timesteps):
             # Calculate progress in percentage of processed timesteps
@@ -135,8 +145,9 @@ class Solver:
             progress = int(float(i) / float(N_timesteps)*10) * 10.0
             if progress != progress_old:
                 print("{}%".format(progress))
+            time += dt
             sol.time.append(time)
-            print(i)
+            #print(i)
 
             ##################################################
             # Calculate Mass fluxes
@@ -170,7 +181,6 @@ class Solver:
                             dvar[box.id, variable.id]
                     sol.ts[box.name][var_name].append(
                         self.system.boxes[box.name].variables[var_name].mass)
-            time += dt
 
         # End Time of Function
         end_time = time_module.time()

@@ -9,6 +9,7 @@ Created on Fri Jun 24 18:57:31 2016
 import copy
 
 from . import box as bs_box
+from . import condition as bs_condition
 from . import errors as bs_errors
 from . import entities as bs_entities
 from . import dimensionality_validation as bs_dim_val
@@ -24,6 +25,9 @@ class BaseTransport:
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
             at which the variable is transported. Note: Must have dimensions of
             [M/T].
+        condition (Condition): Condition for the transport. Used for the 
+            evaluation of user-defined rate and density functions. Defaults to
+            an empty Condition instance.
 
     Attributes:
         name (str): Human readable string describing the base transport.
@@ -32,10 +36,13 @@ class BaseTransport:
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
             at which the variable is transported. Note: Must have dimensions of
             [M/T].
+        condition (Condition): Condition for the transport. Used for the 
+            evaluation of user-defined rate and density functions. Defaults to
+            an empty Condition instance.
 
     """
 
-    def __init__(self, name, source_box, target_box, rate):
+    def __init__(self, name, source_box, target_box, rate, condition=None):
         self.name = name
         self.source_box = source_box
         self.target_box = target_box
@@ -44,6 +51,7 @@ class BaseTransport:
         else:
             bs_dim_val.raise_if_not_mass_per_time(rate)
             self.rate = rate
+        self.condition = condition if condition else bs_condition.Condition()
 
     def __str__(self):
         return '<BaseTransport {}: {}>'.format(self.name, self.rate)
@@ -137,26 +145,20 @@ class Flow(BaseTransport):
             passively transported with this fluid transport from one place
             to an other.
         concentrations (dict {Variable: pint:Quantity}): Concentrations of 
-            variables of flows that stem from outside the system. 
+            variables of flows that stem from outside the system in [kg/kg]. 
             Note: Only Flows from outside the system can have fixed 
             concentrations associated with the flow!
     
     Attributes (additionals to BaseTransport):
+        name (str): Human readable string describing the base transport.
+        source_box (Box): Box from where the transport origins.
+        target_box (Box): Box where the transport goes.
+        rate (pint.Quantity or callable that returns pint.Quantity): Rate 
+            at which the variable is transported. Note: Must have dimensions of
+            [M/T].
         tracer_transport (Boolean): Specifies if tracers (e.g. Variables) are
             passively transported with this fluid transport from one place
             to an other.
-        concentrations (dict {Variable: pint:Quantity}): Concentrations of 
-            variables of flows that stem from outside the system. 
-            Note: Only Flows from outside the system can have fixed 
-            concentrations associated with the flow!
-
-    Notes:
-        For the evaluation of the rate at runtime the following rules apply:
-        - if the flow has a source box the context of this source box is 
-            used as context
-        - if the flow has only a target box (therefore it is a flow from the 
-            outside of the system into the system) the global context of the 
-            system is used as context!
 
     """
 

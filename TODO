@@ -88,3 +88,18 @@ Next steps
 
 
 -> Write time dependent and time-independent rate functions.
+
+
+
+
+How To Document:
+-> Explain General structure of the software, and the different classes
+-> Explain HOw user-defined rate functions work
+   - Context
+        - Condition
+        - Other boxes..
+
+
+Allow the user to also define models that are not based on mass-based variables: e.g. in order to model the number of persons in a museum with different flow-rates of people from one room to another etc.
+-> If this should be possible then Box must not need a Fluid!
+
