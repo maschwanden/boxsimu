@@ -82,7 +82,7 @@ def get_system():
 
     box1 = Box(
         name='box1',
-        name_long='Box 1',
+        description='Box 1',
         fluid=water.q(1e5*ur.kg), 
         condition=Condition(T=290*ur.kelvin),
         variables=[A.q(1*ur.kg), B.q(3*ur.kg)],
@@ -90,7 +90,7 @@ def get_system():
     )
     box2 = Box(
         name='box2',
-        name_long='Box 2',
+        description='Box 2',
         fluid=water.q(1e5*ur.kg), 
         condition=Condition(T=300*ur.kelvin),
         variables=[A.q(2*ur.kg), B.q(1*ur.kg)],

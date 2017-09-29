@@ -61,13 +61,13 @@ def get_system():
 
     upper_ocean = box.Box(
         name='upper_ocean',
-        name_long='Upper Ocean Box',
+        description='Upper Ocean Box',
         fluid=seawater.q(M1*ur.kg), 
         condition=condition.Condition(T=333*ur.kelvin),
     )
     deep_ocean = box.Box(
         name='deep_ocean',
-        name_long='Deep Ocean Box', 
+        description='Deep Ocean Box', 
         fluid=seawater.q(M2*ur.kg),
         condition=condition.Condition(T=222*ur.kelvin),
     )

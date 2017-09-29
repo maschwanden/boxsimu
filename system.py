@@ -14,7 +14,6 @@ import time as time_module
 import numpy as np
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
-from pint.errors import DimensionalityError
 
 # import all submodules with prefix 'bs' for BoxSimu
 from . import box as bs_box
@@ -26,6 +25,7 @@ from . import solver as bs_solver
 from . import transport as bs_transport
 from . import utils as bs_utils
 from . import visualize as bs_visualize
+from . import ur
 
 
 class BoxModelSystem:
@@ -159,22 +159,29 @@ class BoxModelSystem:
         smaller id than a box called 'ocean'.
 
         """
+
+        # Set Box ids
         box_id = 0
         for box_name in self.box_names:
             box = self.boxes[box_name]
             box.id = box_id
             box_id += 1
-
-            var_id = 0
-            var_names = list(self.variables.keys())
-            var_names.sort()
-            for var_name in var_names:
+        
+        # Set Variable ids
+        var_id = 0
+        var_names = list(self.variables.keys())
+        var_names.sort()
+        for var_name in var_names:
+            for box_name, box in self.boxes.items():
                 if var_name not in box.variables.keys():
                     box.variables[var_name] = copy.deepcopy(
                         self.variables[var_name])
+                print(var_name, ':')
+                print('id(box.variables[var_name]): ', id(box.variables[var_name]))
+                print('id(self.variables[var_name]): ', id(self.variables[var_name]))
                 box.variables[var_name].id = var_id
-                self.variables[var_name].id = var_id
-                var_id += 1
+            self.variables[var_name].id = var_id
+            var_id += 1
 
     @property
     def box_list(self):
@@ -222,9 +229,13 @@ class BoxModelSystem:
             condition = element.condition
             condition.set_superset_condition(self.global_condition)
             context = condition
+            if isinstance(element, bs_box.Box):
+                for variable_name, variable in element.variables.items():
+                    setattr(context, variable_name, variable.mass)
         else:
             condition = self.global_condition
             context = condition
+
         
         setattr(context, 'system', self)
         return context
@@ -773,7 +784,6 @@ class BoxModelSystem:
         return q * q_units
 
 
-
     # REACTION
 
     def get_reaction_rate_2Darray(self, time, reaction):
@@ -782,18 +792,22 @@ class BoxModelSystem:
         
         units = []
         for box in self.box_list:
-            for variable_name, variable in self.variables.items():
-                if not reaction in box.reactions:
-                    continue
-                rate = reaction(time, self.get_specific_context(box), variable)
-                rate = rate.to_base_units()
-                bs_dim_val.raise_if_not_mass_per_time(rate)
-                units.append(rate.units)
-                A[box.id, variable.id] = rate.magnitude
+            if not reaction in box.reactions:
+                continue
+            reaction_rates = [r.magnitude for r in reaction(
+                time, self.get_specific_context(box), self.variable_list)]
+            A[box.id, :] = reaction_rates
 
-        default_units = self.pint_ur.kg / self.pint_ur.second
-        A_units = bs_dim_val.get_single_shared_unit(units, default_units)
-        return A * A_units
+            # for variable_name, variable in self.variables.items():
+            #     rate = reaction(time, self.get_specific_context(box), variable)
+            #     rate = rate.to_base_units()
+            #     bs_dim_val.raise_if_not_mass_per_time(rate)
+            #     units.append(rate.units)
+            #     A[box.id, variable.id] = rate.magnitude
+
+        # default_units = self.pint_ur.kg / self.pint_ur.second
+        # A_units = bs_dim_val.get_single_shared_unit(units, default_units)
+        return A * ur.kg/ur.second
 
 
     def get_reaction_rate_3Darray(self, time, reactions=None): 
@@ -837,13 +851,13 @@ class BoxModelSystem:
         units = []
         for i, reaction in enumerate(reactions):
             reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
-            bs_dim_val.raise_if_not_mass_per_time(reaction_2Darray)
-            units.append(reaction_2Darray.units)
+            #bs_dim_val.raise_if_not_mass_per_time(reaction_2Darray)
+            #units.append(reaction_2Darray.units)
             C[i,:,:] = reaction_2Darray.magnitude 
 
-        default_units = self.pint_ur.kg / self.pint_ur.second
-        C_units = bs_dim_val.get_single_shared_unit(units, default_units)
-        return np.moveaxis(C, 0, -1) * C_units
+        #default_units = self.pint_ur.kg / self.pint_ur.second
+        #C_units = bs_dim_val.get_single_shared_unit(units, default_units)
+        return np.moveaxis(C, 0, -1) * ur.kg/ur.second
 
 
     # REPRESENTATION functions

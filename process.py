@@ -7,10 +7,14 @@ Created on Thu Jun 23 2016 10:36UTC
 """
 
 import copy
+import numpy as np
 
 from . import dimensionality_validation as bs_dim_val
+from . import descriptors as bs_descriptors
 from . import entities as bs_entities
 from . import errors as bs_errors
+from . import function as bs_function
+from . import ur
 
 
 class BaseProcess:
@@ -57,28 +61,18 @@ class Process(BaseProcess):
             [M/T].
     """
 
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
+    rate = bs_descriptors.PintQuantityDescriptor('rate', 
+            ur.kg/ur.second, 0*ur.kg/ur.second)
+
     def __init__(self, name, variable, rate):
         self.name = name
         self.variable = variable
-
-        # Add decorator to callable rate that raises exception if return
-        # value is not a pint quantity with dimensionality of [M/T] and
-        # also casts the return value to base units.
-        if callable(rate):
-            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
-        else:
-            bs_dim_val.raise_if_not_mass_per_time(rate)
-            self.rate = rate
+        self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
 
     def __call__(self, time, context):
         """Return rate of the process [M/T]."""
-        rate = self.rate  # Default rate
-        if callable(self.rate):
-            rate = self.rate(time, context)
-        if bs_dim_val.is_mole_per_time(rate):
-            if self.variable.molar_mass:
-                rate = rate * self.variable.molar_mass
-        return rate.to_base_units()
+        return self.rate(time, condition, system)
 
     @classmethod
     def get_all_of_variable(cls, variable, processes):
@@ -118,48 +112,54 @@ class Reaction(BaseProcess):
             E.g. : A + 3B -> 2C + 4D 
             -> variable_reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
         variables (list of Variable): Variables that react in this Reaction.
-        rate (pint.Quantity or callable that returns pint.Quantity): Rate [M/T] 
-            at which the a variable with a reaction coefficient of 1 (one) 
-            reacts. Note: Must have dimensions of [M/T].
+        rate (pint.Quantity or callable that returns pint.Quantity): Rate 
+            [M/T] at which the a variable with a reaction coefficient of 1 
+            (one) reacts. Note: Must have dimensions of [M/T].
             E.g. : A variable has a reaction coefficient of 3, the rate of mass
             transformed of this variable is: reaction_rate * 3.
 
     """
 
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
+
     def __init__(self, name, variable_reaction_coefficients, rate):
         self.name = name
+        for var, coeff in variable_reaction_coefficients.items():
+            if not isinstance(var, bs_entities.Variable):
+                raise bs_errors.DictKeyNotInstanceOfError(
+                        'variable_reaction_coefficients', 'Variable')
+            if not (isinstance(coeff, int) or isinstance(coeff, float)):  
+                raise bs_errors.DictValueNotInstanceOfError(
+                        'variable_reaction_coefficients', 'int or float')
         self.variable_reaction_coefficients = variable_reaction_coefficients
         
         self.variables = []
         for variable, coeff in variable_reaction_coefficients.items():
             self.variables.append(variable)
+        self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
 
-        # Add decorator to callable rate that raises exception if return
-        # value is not a pint quantity with dimensionality of [M/T] and
-        # also casts the return value to base units.
-        if callable(rate):
-            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
-        else:
-            bs_dim_val.raise_if_not_mass_per_time(rate)
-            self.rate = rate
-
-    def __call__(self, time, context, variable):
-        """Return rate of the variable transformation [M/T]."""
-        if not isinstance(variable, bs_entities.Variable):
-            raise ValueError('{} is not a Variable!'.format(variable))
-        if variable not in self.variables:
-            var_coeff = 0
-        else:
-            var_coeff = self.variable_reaction_coefficients[variable]
-
-        rate = self.rate  # Default rate
-        if callable(self.rate):
-            rate = self.rate(time, context)
-        if bs_dim_val.is_mole_per_time(rate):
-            if self.variable.molar_mass:
-                rate = rate * self.variable.molar_mass
-        rate = rate.to_base_units()
-        return var_coeff * rate
+    def __call__(self, time, condition, system, variables):
+        """Return reaction rates of all variables [M/T].
+        
+        Args:
+            time (pint.Quantity [T]): Time of the simulation.
+            condition (Condition): Condition of the Box/Flow/Flux.
+            system (BoxModelSystem): System that is solved. Allows the user
+                to access all Variables in all Boxes of the system.
+            variables (list of Variable): Variables for which the reaction
+                rates should be returned.
+            
+        """
+        rate = self.rate(time, condition, system)
+        var_coeff_list = []
+        for variable in variables:
+            if variable in self.variables:
+                var_coeff_list.append(
+                        self.variable_reaction_coefficients[variable])
+            else:
+                var_coeff_list.append(0)
+        var_coeffs = np.array(var_coeff_list)
+        return var_coeffs * rate
 
     def get_reverse_reaction(self, name, rate=None):
         """Return the reverse reaction of the instance.

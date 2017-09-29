@@ -16,7 +16,7 @@ from functools import wraps
 
 from pint.errors import DimensionalityError
 
-from . import errors as bs_errors # import WrongUnitsDimensionalityError
+from . import errors as bs_errors 
 from . import ur
 
 
@@ -191,4 +191,6 @@ def decorator_raise_if_not(*units):
     return decorator
 
 decorator_raise_if_not_mass_per_time = decorator_raise_if_not(
-        ur.kg / ur.second)
+        ur.kg/ur.second)
+decorator_raise_if_not_density = decorator_raise_if_not(ur.kg/ur.meter**3)
+

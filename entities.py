@@ -13,6 +13,7 @@ from keyword import iskeyword
 # import all submodules with prefix 'bs' for BoxSimu
 from . import dimensionality_validation as bs_dim_val
 from . import descriptors as bs_descriptors
+from . import function as bs_function
 from . import ur
 
 
@@ -22,14 +23,15 @@ class BaseEntity:
     Args:
         name (str): Human readable string describing the entity.
         molar_mass (pint.Quantity): Molar mass of the variable.
-        
+ 
     Attributes:
         name (str): Human readable string describing the entity.
-        mass (pint.Quantity [M]): Mass of the entity.  
+        mass (pint.Quantity [M]): Mass of the entity.
         molar_mass (pint.Quantity [M/N]): Molar mass of the variable.
 
     """
 
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
     mass = bs_descriptors.QuantifiedPintQuantityDescriptor(
             'mass', ur.kg, 0*ur.kg)
     molar_mass = bs_descriptors.PintQuantityDescriptor(
@@ -37,7 +39,7 @@ class BaseEntity:
 
     def __init__(self, name, molar_mass=None):
         self.name = name
-        self._molar_mass = molar_mass
+        self.molar_mass = molar_mass
         self._quantified = False
 
     def __hash__(self):
@@ -46,7 +48,7 @@ class BaseEntity:
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             raise ValueError('Equality can only be checked for instance '
-                             'of the same class.')
+                'of the same class.')
         if self.name == other.name:
             if self.molar_mass == other.molar_mass:
                 return True
@@ -98,11 +100,12 @@ class BaseEntity:
 
 
 class Fluid(BaseEntity):
-    """Represent a Fluid of a Box.
+    """Represent a Fluid (Solvent for Variables) of a Box.
 
-    The Fluid within a Box defines the Box's volume, and mainly also its mass.
-    Fluid mass is exchanged between the boxes of a BoxModelSystem and with the
-    exterior of the system. The Fluid mass can be diminshed to zero but not below.
+    The Fluid within a Box defines the Box's volume, and mainly also its 
+    mass. Fluid mass is exchanged between the boxes of a BoxModelSystem 
+    and with the exterior of the system. The Fluid mass can be diminshed 
+    to zero but not below.
 
     Attributes:
         name (str): Human readable string describing the entity.
@@ -112,28 +115,18 @@ class Fluid(BaseEntity):
 
     """
 
-    rho = bs_descriptors.PintQuantityDescriptor('rho', 
-            ur.kg/ur.meter**3, 0*ur.kg/ur.meter**3)
-
-    def __init__(self, name, rho): 
-        self.rho = rho
+    def __init__(self, name, rho):
+        self.rho = bs_function.UserFunction(rho, ur.kg/ur.meter**3)
         super().__init__(name)
 
-    def get_rho(self, context=None):
+    def get_rho(self, time, condition, system):
         """Return the density of the Fluid."""
-        if callable(self.rho):
-            if context is None:
-                raise ValueError('If rho is given as a dynamic expression '
-                    '(function), an appropriate context must be given.')
-            rho = self.rho(context)
-        else:
-            rho = self.rho
-        bs_dim_val.raise_if_not_density(rho)
-        return rho.to_base_units()
+        return self.rho(time, condition, system)
 
-    def get_volume(self, context=None):
+    def get_volume(self, time, condition, system):
         """Return the volume of the Fluid."""
-        return (self.mass / self.get_rho(context)).to_base_units()
+        rho = self.rho(time, condition, system)
+        return (self.mass / rho).to_base_units()
 
 
 class Variable(BaseEntity):
@@ -141,10 +134,9 @@ class Variable(BaseEntity):
 
     Args:
         name (str): Human readable string describing the entity.
-        mobility (boolean or function that returns boolean): Specifies 
-            whether the variable is mobile, and thus whether it is 
+        mobility (boolean or function that returns boolean): Specifies
+            whether the variable is mobile, and thus whether it is
             passively transported with fluid flows.
-
 
     Attributes (in addition to attributes from base class BaseEntity):
         id (int): Id of the variable in the system. Ids are assigned 
@@ -154,23 +146,11 @@ class Variable(BaseEntity):
 
     """
 
+    id = bs_descriptors.ImmutableDescriptor('id')
+
     def __init__(self, name, molar_mass=None, mobility=True):
-        self.id = None
         self.mobility = mobility
         super().__init__(name, molar_mass)
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        # Make name an immutable attribute
-        if hasattr(self, '_name'):
-            raise AttributeError('Can\'t set immutable attribute')
-        if not value.isidentifier() or iskeyword(value):
-            raise ValueError('Name must be a valid python expression!')
-        self._name = value
 
     def is_mobile(self, time, context):
         mobile = self.mobility 

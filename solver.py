@@ -19,114 +19,84 @@ from . import utils as bs_utils
 from . import dimensionality_validation as bs_dim_val
 from . import ur
 
-DEBUG = False
-
-
-def dprint(*args):
-    if DEBUG:
-        print(*args)
-
-
-def dinput(*args):
-    if DEBUG:
-        return input(*args)
-
 
 class Solver:
     """Class that simulates the evolution of a BoxModelSystem in time.
 
     Functions:
         solve: Solve the complete system. That means all Fluid mass flows
-            are calculated together with processes/reactions/fluxes/flows of variables
-            that are traced within the system. Returns a Solution instance which contains
-            the time series of all system quantities and can also plot them.
-        solve_flows: Solve only the Fluid mass flows of the system. That means
-            no variable is traced. Fast function to check if Fluid masses of the boxes
-            and associated flows thereof are set correctly. Returns a Solution instance
-            which contains the time series of the fluid masses of all boxes of the system
-            and can also plot them.
+            are calculated together with processes/reactions/fluxes/flows 
+            of variables that are traced within the system. Returns a 
+            Solution instance which contains the time series of all system 
+            quantities and can also plot them.
 
     Attributes:
         system (System): System which is simulated.
 
     """
+    REPORTING_QUANTITIES_PER_BOX = [
+        'mass', 
+        'volume',
+        '{variable}', 
+    ]
+
+    REPORTING_RATES_PER_BOX = [
+        'd_{variable}', 
+        'd_{variable}_flow',
+        'd_{variable}_{flow}',
+        'd_{variable}_flux',
+        'd_{variable}_{flux}',
+        'd_{variable}_process',
+        'd_{variable}_{process}',
+        'd_{variable}_reaction',
+        'd_{variable}_{reaction}',
+    ]
 
     def __init__(self, system):
         self.system = system
-        self._system_initial = copy.deepcopy(system)
-
-    def solve_flows(self, total_integration_time, dt):
-        print('Start solving the flows of the box model...')
-        print('- total integration time: {}'.format(total_integration_time))
-        print('- dt (time step): {}'.format(dt))
-
-        self.system = copy.deepcopy(self._system_initial)
-
-        bs_dim_val.raise_if_not_time(total_integration_time)
-        bs_dim_val.raise_if_not_time(dt)
-
-        # Get number of time steps - round up if there is a remainder
-        N_timesteps = math.ceil(total_integration_time / dt)
-        time = total_integration_time * 0
-
-        # Start time of function
-        start_time = time_module.time()
-
-        sol = bs_solution.Solution(total_integration_time, dt, 
-                self.system)
-
-        progress = 0
-        for i in range(N_timesteps):
-            # Calculate progress in percentage of processed timesteps
-            progress_old = progress
-            progress = round(float(i) / float(N_timesteps), 1) * 100.0
-            if progress != progress_old:
-                print("{}%".format(progress))
-            sol.time.append(time)
-
-            dm, f_flow = self._calculate_mass_flows(time, dt)
-
-            for box_name, box in self.system.boxes.items():
-                # Write changes to box objects
-                box.fluid.mass += dm[box.id]
-
-                # Save to Solution instance
-                sol.ts[box_name]['mass'].append(box.fluid.mass)
-
-            time += dt
-
-        # End Time of Function
-        end_time = time_module.time()
-        print('Function "solve_flows(...)" used {:3.3f}s'.format(
-                end_time - start_time))
-        return sol
 
     def solve(self, total_integration_time, dt, debug=False):
-        print('Start solving the box model...')
-        print('- total integration time: {}'.format(total_integration_time))
-        print('- dt (time step): {}'.format(dt))
+        """Simulate the time evolution of all variables within the system.
+
+        Collect all information about the system, create differential 
+        equations from this information and integrate them (numercially)
+        into the future.
+
+        Args:
+            system (System): The system that is simulated.
+            total_integration_time (pint.Quantity [T]): The time span which
+                the system should be solved into the "future". The system will
+                be simulated for the time period zero to approximately 
+                total_integration_time (depending whether 
+                total_integration_time is a multiple of dt; if not the real
+                integration horizon will be be bigger than 
+                [0, total_integration_time]).
+            dt (pint.Quantity [T]): Size of the timestep for the simulation.
+                The bigger the timestep the faster the simulation will be
+                calculated, however, if the timestep is chosen too high
+                there can arise numerical instabilites!
+            debug (bool): Activates debugging mode (pdb.set_trace()).
+                Defaults to False.
+
+        """
+        # Start time of function
+        func_start_time = time_module.time()
 
         if debug:
             pdb.set_trace()
-
-        self.system = copy.deepcopy(self._system_initial)
-
-        if len(self.system.variable_list) == 0:
-            return self.solve_flows(total_integration_time, dt)
                 
-
-        bs_dim_val.raise_if_not_time(total_integration_time)
-        bs_dim_val.raise_if_not_time(dt)
-
         # Get number of time steps - round up if there is a remainder
         N_timesteps = math.ceil(total_integration_time / dt)
+        # Recalculate total integration time based on the number of timesteps
+        total_integration_time = N_timesteps * dt
+
+        print('Start solving the BoxModelSystem...')
+        print('- total integration time: {}'.format(total_integration_time))
+        print('- dt (time step): {}'.format(dt))
+        print('- number of time steps: {}'.format(N_timesteps))
+
         time = total_integration_time * 0
-
-        # Start time of function
-        start_time = time_module.time()
-
-        sol = bs_solution.Solution(total_integration_time, dt, 
-                self.system)
+        sol = bs_solution.Solution(self.system, N_timesteps, dt)
 
         # Save initial state to solution
         for box in self.system.box_list:
@@ -147,7 +117,6 @@ class Solver:
                 print("{}%".format(progress))
             time += dt
             sol.time.append(time)
-            #print(i)
 
             ##################################################
             # Calculate Mass fluxes
@@ -183,11 +152,14 @@ class Solver:
                         self.system.boxes[box.name].variables[var_name].mass)
 
         # End Time of Function
-        end_time = time_module.time()
+        func_end_time = time_module.time()
         print(
             'Function "solve(...)" used {:3.3f}s'.format(
-                end_time - start_time))
+                func_end_time - func_start_time))
         return sol
+
+    def add_timestep_to_solution(self, **kwargs):
+        pass
 
     # HELPER functions
 
@@ -286,7 +258,17 @@ class Solver:
             f_var_tmp = ((var_ini + net_source) / net_sink).magnitude 
             f_var_tmp[np.isnan(f_var_tmp)] = 1
             f_var_tmp[f_var_tmp > 1] = 1
+
+            # If any element of f_var_tmp is smaller than one this means that
+            # for at least one variable in one box the sinks are bigger than
+            # the sum of the source and the already present variable mass.
+            # Thus: The mass of this variable would fall below zero!
+            # Reduce the sinks proportional to the ratio of the sources and 
+            # the already present variable mass to the sinks.
             if np.any(f_var_tmp < 1):
+                # To be sure that the sinks are reduced enough and to 
+                # evade any rouding errors the reduction ratio of the sinks
+                # (f_var_tmp) is further decreased by a very small number.
                 f_var_tmp[f_var_tmp < 1] -= 1e-15 # np.nextafter(0, 1)
                 f_var *= f_var_tmp
             else:

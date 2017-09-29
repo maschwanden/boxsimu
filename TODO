@@ -102,4 +102,13 @@ How To Document:
 
 Allow the user to also define models that are not based on mass-based variables: e.g. in order to model the number of persons in a museum with different flow-rates of people from one room to another etc.
 -> If this should be possible then Box must not need a Fluid!
+-> Write Solution class better: use pandas for the timeseries!
+-> Discrete Variables! Like people...
+-> Report rates in a separate pandas DataFrame
 
+
+-> Rewrite/Write a nice interface to Solution inclusive plotting functions
+-> Improve efficency of Solver and system:
+    -> replace single_shared_unit function at the end of almost all system methods
+    -> Cythonize
+-> Maybe change general parameters for user-defined rates: rate(time, condition, system) instead of rate(time, context)

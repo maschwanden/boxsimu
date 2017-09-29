@@ -6,7 +6,7 @@ Created on Thu Jun 23 2016 at 11:08UTC
 
 A Box represents a box within a sinlge- or multibox-system.
 
-A Box instance represents one compartement in a system that is most often
+A Box instance represents one compartement in a system. A box is most often
 assumed to be well mixed (but doesn't have to). It contains information on
 the amount of fluid/solvent (e.g. water) and traced variables, on the 
 running processes and reactions, and the environmental conditions in 
@@ -23,25 +23,35 @@ import random
 from keyword import iskeyword
 from attrdict import AttrDict
 
-from . import errors as bs_errors
 from . import condition as bs_condition
 from . import descriptors as bs_descriptors
+from . import errors as bs_errors
+from . import ur
 
 
 class Box:
     """Box in a single- or multibox system.
 
-    A Box contains one Fluid and zero to multiple Variables.
-    Boxes can exchange Fluid and Variable mass with each other.
-    Additionally, Processes and Reactions can be defined that alter the 
-    Variable mass in a Box.
+    An instance of Box represents a compartement of a system that is 
+    defined by specific environmental conditions, processes, and reactions.
+    A specific box contains at least one instance of Variable. A variable 
+    is a quantity that is modelled in the system and whose time evolution is
+    of interest to the user.
+    A box can be "empty space" only containing some mass of its variables or 
+    it can contain an instance of Fluid which fills the complete box and 
+    which serves then represents a solvent for all variables within the box.
+    If a box contains no fluid it can therefore also not exchange fluid mass
+    with other boxes. Thus it can not be a source or target of an instance 
+    of the class Flow. However it still can exchange variable mass with 
+    other boxes via fluxes (instance of the class Flux).
     
     Args:
         name (str): Valid python expression used to identify the box.
-        name_long (str): Human readable string describing the box.   
-        fluid (Fluid): Fluid that represents the solvent of the box.
+        description (str): Human readable string describing the box.   
         condition (Condition): Condition of the box. Used for the evaluation
             of user-defined Process-/Reaction-/Flow-/Flux-rates.
+        fluid (Fluid): Fluid that represents the solvent of the box.
+            Defaults to None.
         variables (list of Variable): Variables that are found within the box.
             The Variable instances must be quantified (that means they must
             be generated using the method q() on a Variable instance).
@@ -54,9 +64,9 @@ class Box:
     Attributes:
         id (int): ID of the box within a BoxModelSystem. Note: This
             Attribute is set by the BoxModelSystem instance that
-            contains a box (should not be set by the user!).
+            contains a box (must not be set by the user!).
         name (str): Valid python expression used to identify the box.
-        name_long (str): Human readable string describing the box.     
+        description (str): Human readable string describing the box.     
         fluid (Fluid): Fluid that represents the solvent of the box.
         condition (Condition): Condition of the box. Used for the evaluation
             of user-defined Process-/Reaction-/Flow-/Flux-rates.
@@ -65,14 +75,17 @@ class Box:
         reactions (list of Reaction): Reactions that take place in the box.
 
     """
+    id = bs_descriptors.ImmutableDescriptor('id')
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
 
-    def __init__(self, name, name_long, fluid, condition=None, variables=None,
-                 processes=None, reactions=None):
+    def __init__(self, name, description, fluid=None, condition=None, 
+            variables=None, processes=None, reactions=None):
         self.name = name
-        self.name_long = name_long
-
-        if not fluid.quantified:
-            raise bs_errors.FluidNotQuantifiedError('Fluid was not quantified!')
+        self.description = description
+        
+        if fluid:
+            if not fluid.quantified:
+                raise bs_errors.FluidNotQuantifiedError()
         self.fluid = fluid
         self.condition = condition if condition else bs_condition.Condition()
         self.processes = processes or []
@@ -84,8 +97,7 @@ class Box:
         variables = variables or []
         for variable in variables:
             if not variable.quantified:
-                raise bs_errors.VariableNotQuantifiedError(
-                    'Variable was not quantified!')
+                raise bs_errors.VariableNotQuantifiedError()
             self.variables[variable.name] = variable
 
         variable_names = [var_name for var_name, var in self.variables.items()]
@@ -111,30 +123,6 @@ class Box:
         return false
 
     @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, value):
-        # Make id an immutable attribute
-        if hasattr(self, '_id'):
-            raise AttributeError('Can\'t set immutable attribute')
-        self._id = value
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        # Make name an immutable attribute
-        if hasattr(self, '_name'):
-            raise AttributeError('Can\'t set immutable attribute')
-        if not value.isidentifier() or iskeyword(value):
-            raise ValueError('Name must be a valid python expression!')
-        self._name = value
-
-    @property
     def mass(self):
         variable_mass = sum(
             [var.mass for var_name, var in self.variables.items()])
@@ -148,10 +136,6 @@ class Box:
     def var(self):
         return self.variables
 
-    @property
-    def pint_ur(self):
-        return fluid.mass._REGISTRY
-
     def get_volume(self, context=None):
         return self.fluid.get_volume(context)
 
@@ -161,7 +145,7 @@ class Box:
             concentration = self.variables[variable.name].mass / self.mass
             concentration = concentration.to_base_units()
             return concentration
-        return 0 * self.pint_ur.dimensionless
+        return 0 * ur.dimensionless
 
     def get_vconcentration(self, variable, context=None):
         """Return the volumetric concentration [kg/m^3] of variable."""
@@ -170,7 +154,7 @@ class Box:
             concentration = self.variables[variable.name].mass / volume
             concentration = concentration.to_base_units()
             return concentration
-        return 0 * self.pint_ur.kg / self.pint_ur.meter**3
+        return 0 * ur.kg / ur.meter**3
 
     # REPRESENTATION functions
     

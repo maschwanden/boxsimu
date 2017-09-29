@@ -11,7 +11,9 @@ import sys
 import inspect
 
 from pint import UnitRegistry
-ur = UnitRegistry()
+# Use this instance of pint.UnitRegistry in order to avoid errors due 
+# to the incompatibility between different instances thereof!
+ur = UnitRegistry() 
 
 
 # realpath() will make your script run, even if you symlink it :)

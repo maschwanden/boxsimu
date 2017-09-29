@@ -121,7 +121,7 @@ def get_system():
     #############################
     lake = Box(
         name='lake',
-        name_long='Lake Box',
+        description='Lake Box',
         fluid=seawater.q(1e16*ur.kg),
         condition=Condition(T=290*ur.kelvin, pH=7.0),
         variables=[po4.q(1*ur.kg), no3.q(2*ur.kg), phyto.q(3*ur.kg)],
@@ -129,7 +129,7 @@ def get_system():
     )
     upper_ocean = Box(
         name='upper_ocean',
-        name_long='Upper Ocean Box',
+        description='Upper Ocean Box',
         fluid=seawater.q(3e19*ur.kg), 
         processes=[po4_release_upper_ocean, po4_sink_upper_ocean, 
                    no3_release_upper_ocean, no3_sink_upper_ocean],
@@ -139,7 +139,7 @@ def get_system():
     )
     deep_ocean = Box(
         name='deep_ocean',
-        name_long='Deep Ocean Box',
+        description='Deep Ocean Box',
         fluid=seawater.q(1e21*ur.kg),
         condition=Condition(T=275*ur.kelvin, pH=8.1),
         variables=[po4.q(7*ur.kg), no3.q(8*ur.kg), phyto.q(9*ur.kg)],
@@ -147,7 +147,7 @@ def get_system():
     )
     sediment = Box(
         name='sediment',
-        name_long='Sediment Box',
+        description='Sediment Box',
         fluid=sediment_material.q(1e10*ur.kg),
         condition=Condition(T=275*ur.kelvin, pH=7.7),
         variables=[po4.q(10*ur.kg), no3.q(11*ur.kg), phyto.q(12*ur.kg)],

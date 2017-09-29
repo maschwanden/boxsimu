@@ -128,7 +128,7 @@ class BoxModelSystemSvgHelper:
                     'Fluid: {}'.format(box.fluid.name),
                     'Mass: {:.3e}'.format(box.mass),
                 ],
-                title=box.name_long,
+                title=box.description,
         )
         procsses_group_id = '{}_processes'.format(box.name)
         box_process_names = [p.name for p in box.processes]

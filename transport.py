@@ -10,47 +10,58 @@ import copy
 
 from . import box as bs_box
 from . import condition as bs_condition
-from . import errors as bs_errors
 from . import entities as bs_entities
+from . import errors as bs_errors
+from . import descriptors as bs_descriptors
 from . import dimensionality_validation as bs_dim_val
+from . import function as bs_function
+from . import ur
 
 
 class BaseTransport:
-    """Base class for transports of fluids and variables.
+    """Base class for the transport of fluids and variables.
 
     Args:
         name (str): Human readable string describing the base transport.
-        source_box (Box): Box from where the transport origins.
-        target_box (Box): Box where the transport goes.
+        source_box (Box): Box from where the fluid transport origins.
+        target_box (Box): Box where the fluid transport goes.
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
-            at which the variable is transported. Note: Must have dimensions of
-            [M/T].
+            at which the variable is transported. Note: Must have dimensions 
+            of [M/T].
         condition (Condition): Condition for the transport. Used for the 
-            evaluation of user-defined rate and density functions. Defaults to
-            an empty Condition instance.
+            evaluation of user-defined rate and density functions. Defaults 
+            to an empty Condition instance.
 
     Attributes:
         name (str): Human readable string describing the base transport.
-        source_box (Box): Box from where the transport origins.
-        target_box (Box): Box where the transport goes.
+        source_box (Box): Box from where the fluid transport origins.
+        target_box (Box): Box where the fluid transport goes.
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
-            at which the variable is transported. Note: Must have dimensions of
-            [M/T].
+            at which the variable is transported. Note: Must have dimensions 
+            of [M/T].
         condition (Condition): Condition for the transport. Used for the 
-            evaluation of user-defined rate and density functions. Defaults to
-            an empty Condition instance.
+            evaluation of user-defined rate and density functions. Defaults 
+            to an empty Condition instance.
 
     """
 
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
+
     def __init__(self, name, source_box, target_box, rate, condition=None):
         self.name = name
+        if source_box and not source_box.fluid:
+            raise bs_errors.NoFluidInBoxError()
+        if target_box and not target_box.fluid:
+            raise bs_errors.NoFluidInBoxError()
+        if source_box == target_box:
+            raise ValueError('target_box and source_box must not be equal!')
+        if not (isinstance(source_box, bs_box.Box) or 
+                isinstance(target_box, bs_box.Box)):
+            raise ValueError('At least one of the two parameters source_box '
+                'and target_box must be an instance of the class Box!')
         self.source_box = source_box
         self.target_box = target_box
-        if callable(rate):
-            self.rate = bs_dim_val.decorator_raise_if_not_mass_per_time(rate)
-        else:
-            bs_dim_val.raise_if_not_mass_per_time(rate)
-            self.rate = rate
+        self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
         self.condition = condition if condition else bs_condition.Condition()
 
     def __str__(self):
@@ -74,12 +85,9 @@ class BaseTransport:
             return self.name < other.name
         return false
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, time, condition, system):
         """Instances can be called like functions."""
-        rate = self.rate  # Default of rate
-        if callable(self.rate):
-            rate = self.rate(*args, **kwargs)
-        return rate.to_base_units()
+        return self.rate(time, condition, system)
 
     @classmethod
     def get_all_from(cls, source_box, transports):
@@ -154,47 +162,42 @@ class Flow(BaseTransport):
         source_box (Box): Box from where the transport origins.
         target_box (Box): Box where the transport goes.
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
-            at which the variable is transported. Note: Must have dimensions of
-            [M/T].
+            at which the variable is transported. Note: Must have dimensions 
+            of [M/T].
         tracer_transport (Boolean): Specifies if tracers (e.g. Variables) are
             passively transported with this fluid transport from one place
             to an other.
 
     """
 
+    concentrations = bs_descriptors.PintQuantityExpValueDictDescriptor(
+            'concentrations', [bs_entities.Variable], ur.kg/ur.kg)
+
     def __init__(self, name, source_box, target_box, rate, 
             tracer_transport=True, concentrations={}):
-        if source_box == target_box:
-            raise ValueError('target_box and source_box must not be equal!')
-
-        if not (isinstance(source_box, bs_box.Box) or 
-                isinstance(target_box, bs_box.Box)):
-            raise ValueError('At least one of the two parameters source_box '
-                'and target_box must be an instance of the class Box!')
         if (isinstance(source_box, bs_box.Box) and 
                 isinstance(target_box, bs_box.Box)):
             if source_box.fluid != target_box.fluid:
-                raise ValueError('target_box.fluid and source_box.fluid '
-                    'must be equal!')
+                raise bs_errors.FluidsOfBoxesNotIdenticalError()
 
         self.tracer_transport = tracer_transport
-
         self.variables = []
         self.concentrations = {}
         
         if source_box and len(concentrations) > 0:
-            raise ValueError('Flow concentrations can only be predefined for '
-                    'Flows from the outside of the system.')
-
-        # Check if variable_concentration_dict is valid
-        for variable, concentration in concentrations.items():
-            if not isinstance(variable, bs_entities.Variable):
-                raise ValueError('Keys of the variable_concentration_dict must be '
-                    'instances of the class Variable (source_box=None)!')
-            bs_dim_val.raise_if_not_dimless(concentration)
-            var_copy = copy.deepcopy(variable)
-            self.variables.append(var_copy)
-            self.concentrations[var_copy] = concentration
+            raise bs_errors.FixedVariableConcentrationError()
+        
+        self.concentrations = concentrations
+        self.variables = [key for key, value in concentrations.items()]
+        # # Check if variable_concentration_dict is valid
+        # for variable, concentration in concentrations.items():
+        #     if not isinstance(variable, bs_entities.Variable):
+        #         raise bs_errors.DictKeyNotInstanceOfError(
+        #             'variable_concentration_dict', 'Variable')
+        #     bs_dim_val.raise_if_not_dimless(concentration)
+        #     var_copy = copy.deepcopy(variable)
+        #     self.variables.append(var_copy)
+        #     self.concentrations[var_copy] = concentration
 
         super().__init__(name, source_box, target_box, rate)
 
@@ -208,11 +211,10 @@ class Flow(BaseTransport):
 
         """
         if self.source_box:
-            raise ValueError( 'Fixed variable concentrations can only be '
-                'set for Flows with no source_box set (source_box=None)!')
+            raise FixedVariableConcentrationError()
         if not isinstance(variable, bs_entities.Variable):
-            raise ValueError('Keys of the variable_concentration_dict must be '
-                'instances of the class Variable!')
+            raise bs_errors.DictKeyNotInstanceOfError(
+                    'variable_concentration_dict', 'Variable')
         bs_dim_val.raise_if_not_dimless(concentration)
         self.concentrations[variable] = concentration
         self.variables.append(variable)
@@ -236,16 +238,8 @@ class Flux(BaseTransport):
     """
 
     def __init__(self, name, source_box, target_box, variable, rate):
-        self.name = name
-        if source_box == target_box:
-            raise ValueError('target_box and source_box must not be equal!')
-
-        if not (isinstance(source_box, bs_box.Box) or 
-                isinstance(target_box, bs_box.Box)):
-            raise ValueError('At least one of the two parameters source_box '
-                'and target_box must be an instance of the class Box!')
-
         self.variable = variable
-
         super().__init__(name, source_box, target_box, rate)
+
+
 
