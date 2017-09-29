@@ -119,13 +119,13 @@ class Fluid(BaseEntity):
         self.rho = bs_function.UserFunction(rho, ur.kg/ur.meter**3)
         super().__init__(name)
 
-    def get_rho(self, time, condition, system):
+    def get_rho(self, time, context, system):
         """Return the density of the Fluid."""
-        return self.rho(time, condition, system)
+        return self.rho(time, context, system)
 
-    def get_volume(self, time, condition, system):
+    def get_volume(self, time, context, system):
         """Return the volume of the Fluid."""
-        rho = self.rho(time, condition, system)
+        rho = self.rho(time, context, system)
         return (self.mass / rho).to_base_units()
 
 
@@ -152,10 +152,10 @@ class Variable(BaseEntity):
         self.mobility = mobility
         super().__init__(name, molar_mass)
 
-    def is_mobile(self, time, context):
+    def is_mobile(self, time, context, system):
         mobile = self.mobility 
         if callable(self.mobility):
-            mobile = self.mobility(time, context)
+            mobile = self.mobility(time, context, system)
         if not type(mobile) == bool:
             raise ValueError('Variable.mobility expression must return bool.')
         return mobile

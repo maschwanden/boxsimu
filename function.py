@@ -63,19 +63,19 @@ class UserFunction:
         """Call method for dynamic UserFunction."""
         expression = self.expression(*args)
         if not self.dimensionality_verified:
-            bs_dim_val.raise_if_not(expression, units)
+            bs_dim_val.raise_if_not(expression, self.units)
             self.dimensionality_verified = True
         return expression.to_base_units()
     
     def __call__(self, *args):
-        """UserFunction is called with args: time, condition, system.
+        """UserFunction is called with args: time, context, system.
         
         A UserFunction instance is called from an instance of the class 
         Solver during a simulation of a BoxModelSystem.
 
         Args:
             time (pint.Quantity [T]): Time of the simulation.
-            condition (Condition): Condition of the Box/Flow/Flux.
+            context (AttrDict): Condition and Variables of the Box/Flow/Flux.
             system (BoxModelSystem): System that is solved. Allows the user
                 to access all Variables in all Boxes of the system.
             

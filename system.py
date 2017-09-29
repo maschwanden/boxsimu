@@ -176,9 +176,6 @@ class BoxModelSystem:
                 if var_name not in box.variables.keys():
                     box.variables[var_name] = copy.deepcopy(
                         self.variables[var_name])
-                print(var_name, ':')
-                print('id(box.variables[var_name]): ', id(box.variables[var_name]))
-                print('id(self.variables[var_name]): ', id(self.variables[var_name]))
                 box.variables[var_name].id = var_id
             self.variables[var_name].id = var_id
             var_id += 1
@@ -211,44 +208,11 @@ class BoxModelSystem:
                 pint_ur = box.fluid.mass._REGISTRY
         return pint_ur
 
-    def get_specific_context(self, element=None):
-        """Return context for a specific element of the system.
-
-        A specific element can be a Box, Flow, or Flux. 
-        Return an AttrDict containing the box condition and variables. 
-        In addition all other boxes of the boxmodel-system 
-        are also added to the context in order to give the user-defined 
-        function access to condition and variables of other boxes too.
-
-        Args:
-            element (Box, Flow, or Flux): Compartement for which the context is desired. If default value (None) is
-                given the global context is returned.
-
-        """
-        if element:
-            condition = element.condition
-            condition.set_superset_condition(self.global_condition)
-            context = condition
-            if isinstance(element, bs_box.Box):
-                for variable_name, variable in element.variables.items():
-                    setattr(context, variable_name, variable.mass)
-        else:
-            condition = self.global_condition
-            context = condition
-
-        
-        setattr(context, 'system', self)
-        return context
-
-    def get_global_context(self):
-        return self.get_specific_context()
-
     def get_variable_mobility_bool_1Darray(self, variable, time):
         """Return mobility (True, False) of the variable in every box."""
         mobility = np.zeros(self.N_boxes)
         for box_name, box in self.boxes.items():
-            box_context = self.get_specific_context(box)
-            mobility[box.id] = variable.is_mobile(time, box_context)
+            mobility[box.id] = variable.is_mobile(time, box.context, self)
         return mobility
 
     def get_variable_mobility_numeric_1Darray(self, variable, time):
@@ -266,7 +230,7 @@ class BoxModelSystem:
 
     def get_box_volume(self, box):
         """Return current box_volume of Box."""
-        return box.get_volume(self.get_specific_context(box))
+        return box.get_volume(None, self)
         
 
     #####################################################
@@ -381,8 +345,8 @@ class BoxModelSystem:
         for flow in flows:
             if flow.source_box is None or flow.target_box is None:
                 continue
-            flow_context = self.get_specific_context(flow)
-            fluid_flow_rate = flow(time, flow_context).to_base_units()
+            fluid_flow_rate = flow(time, flow.context, 
+                    self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             A[flow.source_box.id, flow.target_box.id] += \
@@ -413,8 +377,7 @@ class BoxModelSystem:
 
         units = []
         for flow in flows:
-            flow_context = self.get_specific_context(flow)
-            fluid_flow_rate = flow(time, flow_context).to_base_units()
+            fluid_flow_rate = flow(time, flow.context, self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             s[flow.source_box.id] += fluid_flow_rate.magnitude
@@ -444,8 +407,7 @@ class BoxModelSystem:
 
         units = []
         for flow in flows:
-            flow_context = self.get_specific_context(flow)
-            fluid_flow_rate = flow(time, flow_context).to_base_units()
+            fluid_flow_rate = flow(time, flow.context, self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             q[flow.target_box.id] += fluid_flow_rate.magnitude
@@ -494,8 +456,7 @@ class BoxModelSystem:
         for flow in flows:
             if flow.source_box is None or flow.target_box is None:
                 continue
-            flow_context = self.get_specific_context(flow)
-            fluid_flow_rate = flow(time, flow_context).to_base_units()
+            fluid_flow_rate = flow(time, flow.context, self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(fluid_flow_rate)
             concentration = flow_concentrations[flow.source_box.id]
             bs_dim_val.raise_if_not_dimless(concentration)
@@ -579,9 +540,11 @@ class BoxModelSystem:
 
         units = []
         for flow in bs_transport.Flow.get_all_from(None, variable_flows):
-            flow_context = self.get_specific_context(flow)
-            variable_flow_rate = (flow(time, flow_context) * 
-                    flow.concentrations[variable]).to_base_units()
+            flow_rate = flow(time, flow.context, self)
+            flow_var_concentration = flow.concentrations[variable](time, 
+                    flow.context, self)
+            variable_flow_rate = (flow_rate * 
+                    flow_var_concentration).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(variable_flow_rate)
             units.append(variable_flow_rate.units)
             q[flow.target_box.id] += variable_flow_rate.magnitude
@@ -620,9 +583,7 @@ class BoxModelSystem:
         for flux in variable_fluxes:
             if flux.source_box is None or flux.target_box is None:
                 continue
-
-            src_box_context = self.get_specific_context(flux.source_box)
-            flux_rate = flux(time, src_box_context).to_base_units()
+            flux_rate = flux(time, flux.context, self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             A[flux.source_box.id, flux.target_box.id] += flux_rate.magnitude
@@ -654,8 +615,7 @@ class BoxModelSystem:
 
         units = []
         for flux in variable_fluxes:
-            src_box_context = self.get_specific_context(flux.source_box)
-            flux_rate = flux(time, src_box_context).to_base_units()
+            flux_rate = flux(time, flux.context, self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             s[flux.source_box.id] += flux_rate.magnitude
@@ -687,8 +647,8 @@ class BoxModelSystem:
 
         units = []
         for flux in variable_fluxes:
-            trg_box_conetxt = self.get_specific_context(flux.target_box)
-            flux_rate = flux(time, trg_box_conetxt).to_base_units()
+            flux_rate = flux(time, flux.context, flux.source_box,
+                    self).to_base_units()
             bs_dim_val.raise_if_not_mass_per_time(flux_rate)
             units.append(flux_rate.units)
             q[flux.target_box.id] += flux_rate.magnitude
@@ -699,7 +659,8 @@ class BoxModelSystem:
 
     # PROCESS
 
-    def get_variable_process_sink_1Darray(self, variable, time, processes=None):
+    def get_variable_process_sink_1Darray(self, variable, time, 
+            processes=None):
         """Return variable sinks due to processes.
 
         The variable sources for every box due to processes is returned 
@@ -722,10 +683,9 @@ class BoxModelSystem:
         
         units = []
         for box_name, box in self.boxes.items():
-            box_context = self.get_specific_context(box)
             box_processes = [p for p in box.processes 
                     if p.name in variable_process_names]
-            box_process_rates = [p(time, box_context).to_base_units() 
+            box_process_rates = [p(time, box.context, self).to_base_units() 
                     for p in box_processes]
             for rate in box_process_rates:
                 bs_dim_val.raise_if_not_mass_per_time(rate)
@@ -764,10 +724,9 @@ class BoxModelSystem:
         
         units = []
         for box_name, box in self.boxes.items():
-            box_context = self.get_specific_context(box)
             box_processes = [p for p in box.processes 
                     if p.name in variable_process_names]
-            box_process_rates = [p(time, box_context).to_base_units() 
+            box_process_rates = [p(time, box.context, self).to_base_units() 
                     for p in box_processes]
             for rate in box_process_rates:
                 bs_dim_val.raise_if_not_mass_per_time(rate)
@@ -795,18 +754,8 @@ class BoxModelSystem:
             if not reaction in box.reactions:
                 continue
             reaction_rates = [r.magnitude for r in reaction(
-                time, self.get_specific_context(box), self.variable_list)]
+                time, box.context, self, self.variable_list)]
             A[box.id, :] = reaction_rates
-
-            # for variable_name, variable in self.variables.items():
-            #     rate = reaction(time, self.get_specific_context(box), variable)
-            #     rate = rate.to_base_units()
-            #     bs_dim_val.raise_if_not_mass_per_time(rate)
-            #     units.append(rate.units)
-            #     A[box.id, variable.id] = rate.magnitude
-
-        # default_units = self.pint_ur.kg / self.pint_ur.second
-        # A_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return A * ur.kg/ur.second
 
 
@@ -851,12 +800,8 @@ class BoxModelSystem:
         units = []
         for i, reaction in enumerate(reactions):
             reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
-            #bs_dim_val.raise_if_not_mass_per_time(reaction_2Darray)
-            #units.append(reaction_2Darray.units)
             C[i,:,:] = reaction_2Darray.magnitude 
 
-        #default_units = self.pint_ur.kg / self.pint_ur.second
-        #C_units = bs_dim_val.get_single_shared_unit(units, default_units)
         return np.moveaxis(C, 0, -1) * ur.kg/ur.second
 
 

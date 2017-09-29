@@ -72,7 +72,7 @@ class Process(BaseProcess):
 
     def __call__(self, time, context):
         """Return rate of the process [M/T]."""
-        return self.rate(time, condition, system)
+        return self.rate(time, context, system)
 
     @classmethod
     def get_all_of_variable(cls, variable, processes):
@@ -138,19 +138,19 @@ class Reaction(BaseProcess):
             self.variables.append(variable)
         self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
 
-    def __call__(self, time, condition, system, variables):
+    def __call__(self, time, context, system, variables):
         """Return reaction rates of all variables [M/T].
         
         Args:
             time (pint.Quantity [T]): Time of the simulation.
-            condition (Condition): Condition of the Box/Flow/Flux.
+            context (AttrDict): Condition and Variables of the Box/Flow/Flux.
             system (BoxModelSystem): System that is solved. Allows the user
                 to access all Variables in all Boxes of the system.
             variables (list of Variable): Variables for which the reaction
                 rates should be returned.
             
         """
-        rate = self.rate(time, condition, system)
+        rate = self.rate(time, context, system)
         var_coeff_list = []
         for variable in variables:
             if variable in self.variables:

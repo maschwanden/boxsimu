@@ -100,23 +100,23 @@ class Solver:
 
         # Save initial state to solution
         for box in self.system.box_list:
-            sol.time.append(time)
-            sol.ts[box.name]['mass'].append(box.fluid.mass)
-            sol.ts[box.name]['volume'].append(self.system.get_box_volume(box))
+            # sol.df.loc[0] = np.nan
+            sol.df.loc[0, (box.name,'mass')] = box.fluid.mass.magnitude
+            sol.df.loc[0, (box.name,'volume')] = \
+                    self.system.get_box_volume(box).magnitude
             for variable in self.system.variable_list:
                 var_name = variable.name
-                sol.ts[box.name][var_name].append(
-                    self.system.boxes[box.name].variables[var_name].mass)
+                sol.df.loc[0, (box.name,var_name)] = \
+                        box.variables[var_name].mass.magnitude
 
         progress = 0
-        for i in range(N_timesteps):
+        for timestep in range(N_timesteps):
             # Calculate progress in percentage of processed timesteps
             progress_old = progress
-            progress = int(float(i) / float(N_timesteps)*10) * 10.0
+            progress = int(float(timestep) / float(N_timesteps)*10) * 10.0
             if progress != progress_old:
                 print("{}%".format(progress))
             time += dt
-            sol.time.append(time)
 
             ##################################################
             # Calculate Mass fluxes
@@ -142,14 +142,17 @@ class Solver:
                 box.fluid.mass += dm[box.id]
 
                 # Save mass to Solution instance
-                sol.ts[box.name]['mass'].append(box.fluid.mass)
+                sol.df.loc[timestep, (box.name, 'mass')] = \
+                        box.fluid.mass.magnitude
+                sol.df.loc[timestep, (box.name, 'volume')] = \
+                        self.system.get_box_volume(box).magnitude
 
                 for variable in self.system.variable_list:
                     var_name = variable.name
                     self.system.boxes[box.name].variables[var_name].mass += \
                             dvar[box.id, variable.id]
-                    sol.ts[box.name][var_name].append(
-                        self.system.boxes[box.name].variables[var_name].mass)
+                    sol.df.loc[timestep, (box.name,variable.name)] = \
+                            box.variables[variable.name].mass.magnitude
 
         # End Time of Function
         func_end_time = time_module.time()

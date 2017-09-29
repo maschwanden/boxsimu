@@ -51,7 +51,7 @@ def get_system():
     B = Variable('B')
     C = Variable('C')
     # Variable D is mobile solubale if the temperature is above 298K
-    D = Variable('D', mobility=lambda t, c: c.T > 298*ur.kelvin)
+    D = Variable('D', mobility=lambda t, c, s: c.T > 298*ur.kelvin)
 
     #############################
     # REACTIONS
@@ -60,10 +60,10 @@ def get_system():
     reaction1 = Reaction(
         name = 'Reaction1',
         variable_reaction_coefficients={A: -3, B: -5, C: 2},
-        rate=lambda t, c: min(c.A/3, c.B/5) * 2.2 / ur.year
+        rate=lambda t, c, s: min(c.A/3, c.B/5) * 2.2 / ur.year
     )
 
-    def rr2(t, c):
+    def rr2(t, c, s):
         """If Mass(C) > Mass_crit : C -> D."""
         m_crit = 0.5 * ur.kg 
         if c.C > m_crit:
@@ -114,7 +114,7 @@ def get_system():
     )
 
     flow_box1_to_box2 = Flow(
-        name='Inflow', 
+        name='FlowBox1_Box2', 
         source_box=box1, 
         target_box=box2,
         rate=1e3*ur.kg/ur.year,

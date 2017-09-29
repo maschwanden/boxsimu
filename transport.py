@@ -65,7 +65,7 @@ class BaseTransport:
         self.condition = condition if condition else bs_condition.Condition()
 
     def __str__(self):
-        return '<BaseTransport {}: {}>'.format(self.name, self.rate)
+        return '<BaseTransport {}>'.format(self.name)
 
     def __hash__(self):
         return hash(repr(self))
@@ -85,9 +85,13 @@ class BaseTransport:
             return self.name < other.name
         return false
 
-    def __call__(self, time, condition, system):
+    def __call__(self, time, context, system):
         """Instances can be called like functions."""
-        return self.rate(time, condition, system)
+        return self.rate(time, context, system)
+
+    @property
+    def context(self):
+        return self.condition
 
     @classmethod
     def get_all_from(cls, source_box, transports):
@@ -189,20 +193,7 @@ class Flow(BaseTransport):
         
         self.concentrations = concentrations
         self.variables = [key for key, value in concentrations.items()]
-        # # Check if variable_concentration_dict is valid
-        # for variable, concentration in concentrations.items():
-        #     if not isinstance(variable, bs_entities.Variable):
-        #         raise bs_errors.DictKeyNotInstanceOfError(
-        #             'variable_concentration_dict', 'Variable')
-        #     bs_dim_val.raise_if_not_dimless(concentration)
-        #     var_copy = copy.deepcopy(variable)
-        #     self.variables.append(var_copy)
-        #     self.concentrations[var_copy] = concentration
-
         super().__init__(name, source_box, target_box, rate)
-
-    def __str__(self):
-        return '<BaseTransport {}: {}>'.format(self.name, self.rate)
 
     def add_transported_variable(self, variable, concentration):
         """Add constant variable concentration to the flow. 

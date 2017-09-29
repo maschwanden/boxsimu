@@ -124,59 +124,69 @@ class Solution:
         self.dt = 1 * dt
         self.dt = self.dt.to_base_units()
         self.total_integration_time = N_timesteps * dt
-
+        self.time_array = np.linspace(0, self.total_integration_time.magnitude,
+                num=self.N_timesteps)
+        self.time_units = self.dt.units
+        
         self.setup_solution_dataframe()
         
         self.default_figsize = [7,4]
         self.yaxis_log = False
 
     def setup_solution_dataframe(self):
-        time_array = np.linspace(0, self.total_integration_time.magnitude,
-                num=self.N_timesteps)
-        time_units = self.dt.units
-        
         # Setup Dataframe for timeseries of quantities (masses, volumes..)
         quantities = ['mass', 'volume'] + self.system.variable_names 
         col_tuples = [(box, quant) for box in self.system.box_names
                                    for quant in quantities]
         index = pd.MultiIndex.from_tuples(col_tuples, 
                 names=['Box', 'Quantity'])
-        self.df_ts = pd.DataFrame(index=index).T
-        self.df_ts.units = ur.kg
+        self.df = pd.DataFrame(index=index).T
+        self.df.units = ur.kg
 
         # Setup Dataframe for timeseries of rates (proecesses, flows..)
         col_tuples = []
         for box_name, box in self.system.boxes.items():
             for variable_name, variable in self.system.variables.items():
-                col_tuples.append((box_name, variable_name, 'flows'))
-                col_tuples.append((box_name, variable_name, 'fluxes'))
-                col_tuples.append((box_name, variable_name, 'processes'))
-                col_tuples.append((box_name, variable_name, 'reactions'))
-                flows = self.system.flows
-                fluxes = self.system.fluxes
-                for flow in bs_transport.Flow.get_all_from(box, flows):
-                    col_tuples.append((box_name, variable_name, 
-                        'flow_{}'.format(flow.name)))
-                for flow in bs_transport.Flow.get_all_to(box, flows):
-                    col_tuples.append((box_name, variable_name, 
-                        'flow_{}'.format(flow.name)))
-                for flux in bs_transport.Flux.get_all_from(box, fluxes):
-                    col_tuples.append((box_name, variable_name, 
-                        'flux_{}'.format(flux.name)))
-                for flux in bs_transport.Flux.get_all_to(box, fluxes):
-                    col_tuples.append((box_name, variable_name, 
-                        'flux_{}'.format(flux.name)))
-                for process in box.processes:
-                    col_tuples.append((box_name, variable_name, 
-                        'process_{}'.format(process.name)))
-                for reaction in box.reactions:
-                    col_tuples.append((box_name, variable_name, 
-                        'reaction_{}'.format(reaction.name)))
+                col_tuples.append((box_name, variable_name, 'flow'))
+                col_tuples.append((box_name, variable_name, 'flux'))
+                col_tuples.append((box_name, variable_name, 'process'))
+                col_tuples.append((box_name, variable_name, 'reaction'))
+                # flows = self.system.flows
+                # fluxes = self.system.fluxes
+                # print('---------------')
+                # print('box: {}; variable: {}'.format(box_name, variable_name))
+                # for flow in bs_transport.Flow.get_all_from(box, flows):
+                #     print(flow)
+                #     print(flow.source_box, flow.target_box)
+                #     col_tuples.append((box_name, variable_name, 'flow', 
+                #         flow.name))
+                # for flow in bs_transport.Flow.get_all_to(box, flows):
+                #     print(flow)
+                #     print(flow.source_box, flow.target_box)
+                #     col_tuples.append((box_name, variable_name, 'flow', 
+                #         flow.name))
+                # for flux in bs_transport.Flux.get_all_from(box, fluxes):
+                #     if flux.variable == variable:
+                #         col_tuples.append((box_name, variable_name, 'flow', 
+                #             flux.name))
+                # for flux in bs_transport.Flux.get_all_to(box, fluxes):
+                #     if flux.variable == variable:
+                #         col_tuples.append((box_name, variable_name, 'flow', 
+                #             flux.name))
+
+                # for process in box.processes:
+                #     if process.variable == variable:
+                #         col_tuples.append((box_name, variable_name, 
+                #             'process', process.name))
+                # for reaction in box.reactions:
+                #     if variable in reaction.variables:
+                #         col_tuples.append((box_name, variable_name, 
+                #             'reaction', reaction.name))
 
         index = pd.MultiIndex.from_tuples(col_tuples, 
                 names=['Box', 'Variable', 'Mechanism'])
-        self.df_ts_rates = pd.DataFrame(index=index).T
-        self.df_ts_rates.units = ur.kg/ur.second
+        self.df_rates = pd.DataFrame(index=index).sort_index().T
+        self.df_rates.units = ur.kg/ur.second
 
     def add_timestep(self, timestep):
         """Add a timestep to the solution.
@@ -221,8 +231,6 @@ class Solution:
             yaxis_log = self.yaxis_log
         if not self.time_units:
             self.time_units = self.time[0].units
-        if not self.time_magnitude:
-            self.time_magnitude = [t.magnitude for t in self.time]
 
         if not figsize:
             figsize = self.default_figsize
@@ -234,11 +242,10 @@ class Solution:
                 figsize=figsize,
                 yaxis_log=yaxis_log)
 
-        for box_name, ts in self.ts.items():
-            masses = self.ts[box_name][variable.name]
-            mass_magnitude = [mass.magnitude for mass in masses]
-            ax.plot(self.time_magnitude, mass_magnitude,
-                    label='Box {}'.format(ts.box.name))
+        for box_name, box in self.system.boxes.items():
+            masses = self.df.loc[:, (box_name, variable.name)]
+            ax.plot(self.time_array, masses,
+                    label='Box {}'.format(box_name))
         ax.legend()
         return fig, ax
 

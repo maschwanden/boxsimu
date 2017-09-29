@@ -104,6 +104,9 @@ class Box:
         if len(variable_names) != len(set(variable_names)):
             raise ValueError('Variable names have to be unique!')
 
+    def __str__(self):
+        return '<Box {}>'.format(self.name)
+
     def __hash__(self):
         return hash(repr(self))
 
@@ -136,8 +139,15 @@ class Box:
     def var(self):
         return self.variables
 
-    def get_volume(self, context=None):
-        return self.fluid.get_volume(context)
+    @property
+    def context(self):
+        context = self.condition
+        for variable_name, variable in self.variables.items():
+            setattr(context, variable_name, variable.mass)
+        return context
+
+    def get_volume(self, time, system):
+        return self.fluid.get_volume(time, self.context, system)
 
     def get_concentration(self, variable):
         """Return the mass concentration [kg/kg] of variable."""
@@ -147,9 +157,9 @@ class Box:
             return concentration
         return 0 * ur.dimensionless
 
-    def get_vconcentration(self, variable, context=None):
+    def get_vconcentration(self, variable, time, system):
         """Return the volumetric concentration [kg/m^3] of variable."""
-        volume = self.get_volume(context)
+        volume = self.get_volume(time, self.context, system)
         if volume.magnitude > 0:
             concentration = self.variables[variable.name].mass / volume
             concentration = concentration.to_base_units()
