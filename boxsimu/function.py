@@ -20,17 +20,42 @@ with three parameters/arguments:
 
 import pint
 
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 
+
+class BaseUserFunction:
+    """Basic class for user-defined functions returning a pint.Quantity.
+
+    BaseUserFunction is a wrapper for user-defined functions that return
+    a pint.Quantity. The expression given to BaseUserFunction can be a
+    callable or a constant.
+    
+    """
+    
+    def __init__(self, expression):
+        if not callable(expression):
+            bs_validation.raise_if_not_pint_quantity(expression)
+            self.expression = expression.to_base_units()
+            self.dimensionality_verified = True
+            self.call_func = self.static_call
+            self.is_static = True
+            self.is_dynamic = False
+        else:
+            self.dimensionality_verified = False
+            self.expression = expression
+            self.call_func = self.dynamic_call
+            self.is_static = False
+            self.is_dynamic = True
 
 class UserFunction:
-    """User-defined function for dynamic rates or equations.
+    """Standard user-defined function for dynamic rates or equations.
     
-    UserFunction is a wrapper for user-defined functions, used 
-    for example in instances of the classes Process, Reaction, Flow, 
-    and Flux. These user-defined functions are called during the 
-    simulation of the system by the solver with three arguments:
-    time, condition, and system.
+    UserFunction is a wrapper for the most commonly used user-defined 
+    functions that return pint.Quantites. These user-defined functions 
+    are used for example in instances of the classes 
+    Process, Reaction, Flow, and Flux. These user-defined functions 
+    are called during the simulation of the system by the solver with 
+    three arguments: time, condition, and system.
 
     Args:
         expression (pint.Quantity or callable that returns pint.Quantity): 
@@ -42,7 +67,7 @@ class UserFunction:
     def __init__(self, expression, units):
         self.units = units
         if not callable(expression):
-            bs_dim_val.raise_if_not(expression, units)
+            bs_validation.raise_if_not(expression, units)
             self.expression = expression.to_base_units()
             self.dimensionality_verified = True
             self.call_func = self.static_call
@@ -63,7 +88,7 @@ class UserFunction:
         """Call method for dynamic UserFunction."""
         expression = self.expression(*args)
         if not self.dimensionality_verified:
-            bs_dim_val.raise_if_not(expression, self.units)
+            bs_validation.raise_if_not(expression, self.units)
             self.dimensionality_verified = True
         return expression.to_base_units()
     

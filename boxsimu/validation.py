@@ -13,12 +13,21 @@ Dimensions:
 
 """
 from functools import wraps
-
+import pint
 from pint.errors import DimensionalityError
 
 from . import errors as bs_errors 
 from . import ur
 
+
+# OBJECT VALIDATION 
+
+def raise_if_not_pint_quantity(value):
+    if not isinstance(value, pint.quantity._Quantity):
+        raise ValueError('The given value is not a pint.Quantity!')
+
+
+# DIMENSIONALITY VALIDATION
 
 def is_quantity_of_dimensionality(quantity, *units):
     """Check if quantity has dimensionality equal to one element in *units.

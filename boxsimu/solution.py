@@ -9,13 +9,14 @@ Created on Thu Jun 17 2017 at 12:07UTC
 import copy
 import time as time_module
 import numpy as np
+import dill as pickle
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from attrdict import AttrDict
 
 from . import box as bs_box
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 from . import descriptors as bs_descriptors
 from . import entities as bs_entities
 from . import errors as bs_errors 
@@ -24,66 +25,6 @@ from . import system as bs_system
 from . import transport as bs_transport
 from . import utils as bs_utils
 from . import ur
-
-
-class TimeStep:
-    """Information about one timestep of a simulation.
-
-    A Timestep instance contains information about the start and end time
-    of a timestep in a simulation, quantities at both times (start and end
-    time) and the rates of processes, reactions, flows, and fluxes.
-
-    Args:
-        start_time (pint.Quantity [T]): Start time of the timestep.
-        end_time (pint.Quantity [T]): End time of the timestep.
-
-    """
-    start_time = bs_descriptors.PintQuantityDescriptor(
-            'start_time', ur.second)
-    end_time = bs_descriptors.PintQuantityDescriptor(
-            'end_time', ur.second)
-
-    def __init__(self, start_time, end_time):
-        self.start_time = start_time
-        self.end_time = end_time
-
-    def add_box_mass(self, box, mass):
-        """Add masses of Boxes, Fluids, and Variables at t=end_time$
-
-        Args:
-            box (Box): Instance of class Box for which the mass is given.
-            mass (pint.Quantity [M]): Total mass of the box at the end 
-                of the timestep.
-
-        """
-        if not isinstance(box, bs_box.Box):
-            raise 
-            
-        for key, value in masses.items():
-            pass
-
-    def add_box_volume(self, box, *volumes):
-        """Add volumes of Boxes at t=end_time$
-
-        Args:
-            volumes (dict): Key value pairs of Boxes as keys and pint 
-            Quantities with the dimensionality of [M] as values.
-
-        """
-        pass
-
-    def add_variable_mass(self, box, variable, mass):
-        pass
-
-    def add_box_rates(self, box, *rates):
-        """Add rates of Processes and Reactions in the timespan dt.
-
-        Args:
-            rates (dict): Key value pairs of Processes or Reactions as keys 
-            and pint Quantities with the dimensionality of [M] as values.
-
-        """
-        pass
 
 
 class Solution:
@@ -142,6 +83,7 @@ class Solution:
                 names=['Box', 'Quantity'])
         self.df = pd.DataFrame(index=index).T
         self.df.units = ur.kg
+        self.df.index.name = 'Timestep'
 
         # Setup Dataframe for timeseries of rates (proecesses, flows..)
         col_tuples = []
@@ -187,6 +129,7 @@ class Solution:
                 names=['Box', 'Variable', 'Mechanism'])
         self.df_rates = pd.DataFrame(index=index).sort_index().T
         self.df_rates.units = ur.kg/ur.second
+        self.df_rates.index.name = 'Starting Timestep'
 
     def add_timestep(self, timestep):
         """Add a timestep to the solution.
@@ -277,9 +220,9 @@ class Solution:
                 y_label_text = 'kg/kg'
                 units = ur.dimensionless
         else:
-            if bs_dim_val.is_density(units):
+            if bs_validation.is_density(units):
                 volumetric = True
-            elif bs_dim_val.is_dimless(units):
+            elif bs_validation.is_dimless(units):
                 volumetric = False
             else:
                 raise bs_errors.WrongUnitsDimensionalityError('Parameter units '
@@ -395,6 +338,23 @@ class Solution:
         if yaxis_log: 
             ax.set_yscale('log')
         return fig, ax
+
+
+    # PICKLING
+    def save(self, file_name):
+        """Pickle instance and save to file_name."""
+        with open(file_name, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(self, file_name):
+        """Load pickled instance from file_name."""
+        with open(file_name, 'rb') as f:
+            solution = pickle.load(f)
+            if not isinstance(solution, Solution):
+                raise ValueError(
+                        'Loaded pickle object is not a Solution instance!')
+        return solution
 
 
 

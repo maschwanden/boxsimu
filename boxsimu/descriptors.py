@@ -12,10 +12,12 @@ certain pint-dimensionality).
 
 import pint
 import collections
+from attrdict import AttrDict
 
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 from keyword import iskeyword
 
+from . import condition as bs_condition
 from . import errors as bs_errors
 from . import function as bs_function
 
@@ -40,7 +42,7 @@ class PintQuantityDescriptor:
     def __set__(self, instance, value):
         if instance is None: return self
         if value is None: return 
-        bs_dim_val.raise_if_not(value, self.units)
+        bs_validation.raise_if_not(value, self.units)
         setattr(instance, self.name, value.to_base_units())
 
 
@@ -105,6 +107,8 @@ class BaseDictDescriptor:
 
     """
 
+    dict_class = dict
+
     def __init__(self, name, key_classes, value_classes):
         self.name = '_' + name
         self.name_raw = name
@@ -127,8 +131,8 @@ class BaseDictDescriptor:
         setattr(instance, self.name, value)
         
     def _check_key_value_types(self, value):
-        if not isinstance(value, dict):
-            raise bs_errors.NotInstanceOfError(self.name_raw, 'dict')
+        if not isinstance(value, self.dict_class):
+            raise bs_errors.NotInstanceOfError(self.name_raw, self.dict_class)
         for k, v in value.items():
             key_isinstance_list = [isinstance(k, i) 
                     for i in self.key_classes]
@@ -141,8 +145,12 @@ class BaseDictDescriptor:
                 raise bs_errors.DictValueNotInstanceOfError(
                     self.name_raw, self.value_classes)
         return value
-        
-        
+
+
+class AttrDictDescriptor(BaseDictDescriptor):
+    dict_class = AttrDict
+
+
 class PintQuantityValueDictDescriptor(BaseDictDescriptor):
     """Check if keys have the correct type and values are pint quantites.
     
@@ -160,7 +168,7 @@ class PintQuantityValueDictDescriptor(BaseDictDescriptor):
     def _check_key_value_types(self, value):
         value = super()._check_key_value_types(value)
         for k, v in value.items():
-            bs_dim_val.raise_if_not(v, *self.units)
+            bs_validation.raise_if_not(v, *self.units)
         return value
 
 
@@ -177,7 +185,7 @@ class PintQuantityExpValueDictDescriptor(BaseDictDescriptor):
     def __init__(self, name, key_classes, *units):
         super().__init__(name, key_classes, value_classes=[
             pint.quantity._Quantity, collections.Callable])
-        self.units = units    
+        self.units = units
 
     def _check_key_value_types(self, value):
         value = super()._check_key_value_types(value)
@@ -186,4 +194,15 @@ class PintQuantityExpValueDictDescriptor(BaseDictDescriptor):
         return value
 
 
+class ConditionUserFunctionDescriptor(BaseDictDescriptor):
+    dict_class = bs_condition.Condition
 
+    def __init__(self, name, key_classes):
+        super().__init__(name, key_classes, value_classes=[
+            pint.quantity._Quantity, collections.Callable])
+
+    def _check_key_value_types(self, value):
+        value = super()._check_key_value_types(value)
+        for k, v in value.items():
+            value[k] = bs_function.UserFunction(v, *self.units)
+        return value

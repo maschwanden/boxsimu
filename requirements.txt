@@ -7,3 +7,4 @@ svgwrite
 PyYAML 
 jupyter
 pandas
+dill

@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 
 
 def OneDarray_to_TwoDarray_method(vector_method):
@@ -59,7 +59,7 @@ def stack(arrays, *args, **kwargs):
             tmp_units.append(a.to_base_units().units)
         except AttributeError:
             tmp_arrays.append(a)
-    units = bs_dim_val.get_single_shared_unit(tmp_units)
+    units = bs_validation.get_single_shared_unit(tmp_units)
     return np.stack(tmp_arrays, *args, **kwargs) * units
 
 
@@ -67,7 +67,7 @@ def get_array_quantity_from_array_of_quantities(array):
     """Return numpy array associated with quantity from array thereof."""
 
     array_units = [x.units for x in array]
-    units = bs_dim_val.get_single_shared_unit(array_units)
+    units = bs_validation.get_single_shared_unit(array_units)
     array_magnitude = [x.magnitude for x in array]
     return np.array(array_magnitude) * units
 

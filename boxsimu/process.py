@@ -9,7 +9,7 @@ Created on Thu Jun 23 2016 10:36UTC
 import copy
 import numpy as np
 
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 from . import descriptors as bs_descriptors
 from . import entities as bs_entities
 from . import errors as bs_errors
@@ -65,10 +65,12 @@ class Process(BaseProcess):
     rate = bs_descriptors.PintQuantityDescriptor('rate', 
             ur.kg/ur.second, 0*ur.kg/ur.second)
 
-    def __init__(self, name, variable, rate):
+    def __init__(self, name, variable, rate, description=None):
         self.name = name
         self.variable = variable
         self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
+        if not description:
+            self.description = name
 
     def __call__(self, time, context):
         """Return rate of the process [M/T]."""
@@ -76,10 +78,12 @@ class Process(BaseProcess):
 
     @classmethod
     def get_all_of_variable(cls, variable, processes):
+        """Return all processes defined for variable."""
         return [p for p in processes if p.variable == variable]
 
     @classmethod
     def get_all_of_box(cls, box, processes):
+        """Return all processes defined for box."""
         return [p for p in processes if p.box == box]
 
 
@@ -93,11 +97,11 @@ class Reaction(BaseProcess):
 
     Args:
         name (str): Human readable string describing the reaction.
-        variable_reaction_coefficients (dict {Variable: float}): 
+        reaction_coefficients (dict {Variable: float}): 
             Dict with instances of Variable as keys and the corresponding
             reaction coefficients as values.
             E.g. : A + 3B -> 2C + 4D 
-            -> variable_reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
+            -> reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
         rate (pint.Quantity or callable that returns pint.Quantity): Rate [M/T] 
             at which the a variable with a reaction coefficient of 1 (one) 
             reacts. Note: Must have dimensions of [M/T].
@@ -106,11 +110,11 @@ class Reaction(BaseProcess):
 
     Attributes:
         name (str): Human readable string describing the reaction.
-        variable_reaction_coefficients (dict {Variable: float}): 
+        reaction_coefficients (dict {Variable: float}): 
             Dict with instances of Variable as keys and the corresponding
             reaction coefficients as values.
             E.g. : A + 3B -> 2C + 4D 
-            -> variable_reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
+            -> reaction_coefficients={A: -1, B: -3, C: 2, D: 4}
         variables (list of Variable): Variables that react in this Reaction.
         rate (pint.Quantity or callable that returns pint.Quantity): Rate 
             [M/T] at which the a variable with a reaction coefficient of 1 
@@ -122,21 +126,23 @@ class Reaction(BaseProcess):
 
     name = bs_descriptors.ImmutableIdentifierDescriptor('name')
 
-    def __init__(self, name, variable_reaction_coefficients, rate):
+    def __init__(self, name, reaction_coefficients, rate, description=None):
         self.name = name
-        for var, coeff in variable_reaction_coefficients.items():
+        for var, coeff in reaction_coefficients.items():
             if not isinstance(var, bs_entities.Variable):
                 raise bs_errors.DictKeyNotInstanceOfError(
-                        'variable_reaction_coefficients', 'Variable')
+                        'reaction_coefficients', 'Variable')
             if not (isinstance(coeff, int) or isinstance(coeff, float)):  
                 raise bs_errors.DictValueNotInstanceOfError(
-                        'variable_reaction_coefficients', 'int or float')
-        self.variable_reaction_coefficients = variable_reaction_coefficients
+                        'reaction_coefficients', 'int or float')
+        self.reaction_coefficients = reaction_coefficients
         
         self.variables = []
-        for variable, coeff in variable_reaction_coefficients.items():
+        for variable, coeff in reaction_coefficients.items():
             self.variables.append(variable)
         self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
+        if not description:
+            self.description = name
 
     def __call__(self, time, context, system, variables):
         """Return reaction rates of all variables [M/T].
@@ -155,28 +161,56 @@ class Reaction(BaseProcess):
         for variable in variables:
             if variable in self.variables:
                 var_coeff_list.append(
-                        self.variable_reaction_coefficients[variable])
+                        self.reaction_coefficients[variable])
             else:
                 var_coeff_list.append(0)
         var_coeffs = np.array(var_coeff_list)
         return var_coeffs * rate
 
-    def get_reverse_reaction(self, name, rate=None):
+    def get_reverse_reaction(self, name, rate=None, description=None):
         """Return the reverse reaction of the instance.
         
         For example: If a reaction Photosynthesis is defined, the reverse 
         reaction (remineralization) can be obtained by the following call:
             photosynthesis.get_reverse_reaction(name='remineralization',
                     rate=...)
+
+        Args:
+            name (str): Human readable string describing the reaction.
+            description (str): Human readable string describing the box.   
+            rate (pint.Quantity or callable that returns pint.Quantity): Rate 
+                [M/T] at which the a variable with a reaction coefficient of 1 
+                (one) reacts. Note: Must have dimensions of [M/T].
+                E.g. : A variable has a reaction coefficient of 3, the rate of 
+                mass transformed of this variable is: reaction_rate * 3.
         
         """
-        reverse_reaction = copy.deepcopy(self)
-        reverse_reaction.name = name
-        for variable, coeff in self.variable_reaction_coefficients.items():
-            reverse_reaction.variable_reaction_coefficients[variable] = -coeff
-        if rate:
-            reverse_reaction.rate = rate
-        return reverse_reaction
+        reverse_reaction_coefficients = {variable: -coeff 
+                for variable, coeff in self.reaction_coefficients.items()}
+        reverse_reaction_rate = rate if rate else self.rate
+        return Reaction(name, reverse_reaction_coefficients,
+                reverse_reaction_rate, description=description)
+
+    def get_reaction_text(self):
+        """Return the reaction as text. 
+
+        The reaction is printed in the following format:
+        <coeff 1><var 1> + <coeff 2><var 2> + ... -> <coeff i><var i> + ...
+
+        """
+        educt_str_list = []
+        product_str_list = []
+        for variable, coeff in self.reaction_coefficients.items():
+            if coeff > 0:
+                product_str_list.append('{}{}'.format(abs(coeff), 
+                    variable.name))
+            else:
+                educt_str_list.append('{}{}'.format(abs(coeff), 
+                    variable.name))
+
+        reaction_text = ' + '.join(educt_str_list) + ' -> ' + ' + '.join(
+                product_str_list)
+        return reaction_text
 
 
 

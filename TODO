@@ -112,3 +112,7 @@ Allow the user to also define models that are not based on mass-based variables:
     -> replace single_shared_unit function at the end of almost all system methods
     -> Cythonize
 -> Maybe change general parameters for user-defined rates: rate(time, condition, system) instead of rate(time, context)
+-> Descriptor analog to the dict descriptor but for attrdict
+-> Let the user also input some dynamic conditions -> e.g. the temperature should be able to vary between day and night -> Thus let conditions be functions of the time (but not of variables or other conditions)
+-> Install Twine (python package)
+

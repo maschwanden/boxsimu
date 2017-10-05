@@ -13,7 +13,7 @@ from . import condition as bs_condition
 from . import entities as bs_entities
 from . import errors as bs_errors
 from . import descriptors as bs_descriptors
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 from . import function as bs_function
 from . import ur
 
@@ -47,7 +47,8 @@ class BaseTransport:
 
     name = bs_descriptors.ImmutableIdentifierDescriptor('name')
 
-    def __init__(self, name, source_box, target_box, rate, condition=None):
+    def __init__(self, name, source_box, target_box, rate, 
+            condition=None, description=None):
         self.name = name
         if source_box and not source_box.fluid:
             raise bs_errors.NoFluidInBoxError()
@@ -63,6 +64,8 @@ class BaseTransport:
         self.target_box = target_box
         self.rate = bs_function.UserFunction(rate, ur.kg/ur.second)
         self.condition = condition if condition else bs_condition.Condition()
+        if not description:
+            self.description = name
 
     def __str__(self):
         return '<BaseTransport {}>'.format(self.name)
@@ -206,7 +209,7 @@ class Flow(BaseTransport):
         if not isinstance(variable, bs_entities.Variable):
             raise bs_errors.DictKeyNotInstanceOfError(
                     'variable_concentration_dict', 'Variable')
-        bs_dim_val.raise_if_not_dimless(concentration)
+        bs_validation.raise_if_not_dimless(concentration)
         self.concentrations[variable] = concentration
         self.variables.append(variable)
 

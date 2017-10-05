@@ -50,19 +50,6 @@ __all__ = [
     'visualize',    
 ]
 
-from . import box
-from . import condition
-from . import entities
-from . import errors
-from . import dimensionality_validation
-from . import process
-from . import solution
-from . import solver
-from . import system
-from . import transport
-from . import utils
-from . import visualize
-
 from .box import Box
 from .condition import Condition
 from .entities import Fluid, Variable

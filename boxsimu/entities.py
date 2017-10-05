@@ -11,7 +11,7 @@ import numpy as np
 from keyword import iskeyword
 
 # import all submodules with prefix 'bs' for BoxSimu
-from . import dimensionality_validation as bs_dim_val
+from . import validation as bs_validation
 from . import descriptors as bs_descriptors
 from . import function as bs_function
 from . import ur
@@ -25,7 +25,10 @@ class BaseEntity:
         molar_mass (pint.Quantity): Molar mass of the variable.
  
     Attributes:
-        name (str): Human readable string describing the entity.
+        name (str): Short, human readable string describing the entity.
+            Must be a valid Python expression, meaning a valid 
+            Python-variable name.
+        description (str): Human readable string describing the entity.
         mass (pint.Quantity [M]): Mass of the entity.
         molar_mass (pint.Quantity [M/N]): Molar mass of the variable.
 
@@ -37,10 +40,12 @@ class BaseEntity:
     molar_mass = bs_descriptors.PintQuantityDescriptor(
             'molar_mass', ur.kg/ur.mole, 0*ur.kg/ur.mole)
 
-    def __init__(self, name, molar_mass=None):
+    def __init__(self, name, molar_mass=None, description=None):
         self.name = name
         self.molar_mass = molar_mass
         self._quantified = False
+        if not description:
+            self.description = name
 
     def __hash__(self):
         return hash(self.name)
@@ -84,10 +89,10 @@ class BaseEntity:
     def q(self, value):
         """Returns a 'quantified' deepcopy of the current instance."""
         # value can be a pint.Quantity of units mole or kg
-        bs_dim_val.raise_if_not(value, ur.kg, ur.mole)
+        bs_validation.raise_if_not(value, ur.kg, ur.mole)
         self_copy = copy.deepcopy(self)
 
-        if bs_dim_val.is_mass(value):
+        if bs_validation.is_mass(value):
             self_copy.mass = value
         else:
             if self.molar_mass:
@@ -115,9 +120,9 @@ class Fluid(BaseEntity):
 
     """
 
-    def __init__(self, name, rho):
+    def __init__(self, name, rho, description=None):
         self.rho = bs_function.UserFunction(rho, ur.kg/ur.meter**3)
-        super().__init__(name)
+        super().__init__(name, description=description)
 
     def get_rho(self, time, context, system):
         """Return the density of the Fluid."""
@@ -133,7 +138,10 @@ class Variable(BaseEntity):
     """Tracer/Substance that is analysed.
 
     Args:
-        name (str): Human readable string describing the entity.
+        name (str): Human readable string describing the variable.
+        name_symolic (str): Human readable short string that clearly 
+            represents the variable.
+            Defaults to the same value as name.
         mobility (boolean or function that returns boolean): Specifies
             whether the variable is mobile, and thus whether it is
             passively transported with fluid flows.
@@ -148,9 +156,10 @@ class Variable(BaseEntity):
 
     id = bs_descriptors.ImmutableDescriptor('id')
 
-    def __init__(self, name, molar_mass=None, mobility=True):
+    def __init__(self, name, molar_mass=None, mobility=True, 
+            description=None):
         self.mobility = mobility
-        super().__init__(name, molar_mass)
+        super().__init__(name, molar_mass=molar_mass, description=description)
 
     def is_mobile(self, time, context, system):
         mobile = self.mobility 

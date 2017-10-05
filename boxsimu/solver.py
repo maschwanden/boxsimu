@@ -16,7 +16,6 @@ import math
 
 from . import solution as bs_solution
 from . import utils as bs_utils
-from . import dimensionality_validation as bs_dim_val
 from . import ur
 
 
@@ -53,7 +52,7 @@ class Solver:
     ]
 
     def __init__(self, system):
-        self.system = system
+        self.system_initial = system
 
     def solve(self, total_integration_time, dt, debug=False):
         """Simulate the time evolution of all variables within the system.
@@ -96,6 +95,7 @@ class Solver:
         print('- number of time steps: {}'.format(N_timesteps))
 
         time = total_integration_time * 0
+        self.system = copy.deepcopy(self.system_initial)
         sol = bs_solution.Solution(self.system, N_timesteps, dt)
 
         # Save initial state to solution

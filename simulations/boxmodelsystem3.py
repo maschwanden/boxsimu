@@ -47,9 +47,9 @@ def get_system():
     # VARIABLES
     #############################
 
-    A = Variable('A')
-    B = Variable('B')
-    C = Variable('C')
+    A = Variable('A', description='Variable A')
+    B = Variable('B', description='Variable B')
+    C = Variable('C', description='Variable C')
     # Variable D is mobile solubale if the temperature is above 298K
     D = Variable('D', mobility=lambda t, c, s: c.T > 298*ur.kelvin)
 
@@ -59,7 +59,7 @@ def get_system():
 
     reaction1 = Reaction(
         name = 'Reaction1',
-        variable_reaction_coefficients={A: -3, B: -5, C: 2},
+        reaction_coefficients={A: -3, B: -5, C: 2},
         rate=lambda t, c, s: min(c.A/3, c.B/5) * 2.2 / ur.year
     )
 
@@ -72,7 +72,7 @@ def get_system():
 
     reaction2 = Reaction(
         name = 'Reaction2',
-        variable_reaction_coefficients={C: -1, D: 1},
+        reaction_coefficients={C: -1, D: 1},
         rate=rr2,
     )
     

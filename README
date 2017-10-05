@@ -1,7 +1,0 @@
-BoxSimu is a simple and lightweight simulation software that allows the 
-user to model/simulate simple systems of perfectly mixed boxes.
-
-Boxes contain a fluid and variables that can be traced. The fluid and
-variables are altered by fluid-flows, variable-fluxes, processes and
-reactions.
-
