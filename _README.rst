@@ -1,4 +1,4 @@
-boxsimu
+boxsimu 
 ===================
 
 boxsimu is a simple simulation software that allows the 
