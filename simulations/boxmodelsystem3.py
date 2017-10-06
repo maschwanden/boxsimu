@@ -20,19 +20,7 @@ import datetime
 
 from matplotlib import pyplot as plt
 
-
-if not os.path.abspath(__file__ + "/../../../") in sys.path:
-    sys.path.append(os.path.abspath(__file__ + "/../../../"))
-
-
-from boxsimu.entities import Fluid, Variable
-from boxsimu.box import Box
-from boxsimu.transport import  Flow, Flux
-from boxsimu.condition import Condition
-from boxsimu.system import BoxModelSystem 
-from boxsimu.process import Process, Reaction
-from boxsimu.solver import Solver
-from boxsimu import utils
+import boxsimu
 from boxsimu import ur
 
 
@@ -41,23 +29,23 @@ def get_system():
     # FLUIDS
     #############################
 
-    water = Fluid('water', rho=1000*ur.kg/ur.meter**3)
+    water = boxsimu.Fluid('water', rho=1000*ur.kg/ur.meter**3)
     
     #############################
     # VARIABLES
     #############################
 
-    A = Variable('A', description='Variable A')
-    B = Variable('B', description='Variable B')
-    C = Variable('C', description='Variable C')
+    A = boxsimu.Variable('A', description='Variable A')
+    B = boxsimu.Variable('B', description='Variable B')
+    C = boxsimu.Variable('C', description='Variable C')
     # Variable D is mobile solubale if the temperature is above 298K
-    D = Variable('D', mobility=lambda t, c, s: c.T > 298*ur.kelvin)
+    D = boxsimu.Variable('D', mobility=lambda t, c, s: c.T > 298*ur.kelvin)
 
     #############################
     # REACTIONS
     #############################
 
-    reaction1 = Reaction(
+    reaction1 = boxsimu.Reaction(
         name = 'Reaction1',
         reaction_coefficients={A: -3, B: -5, C: 2},
         rate=lambda t, c, s: min(c.A/3, c.B/5) * 2.2 / ur.year
@@ -70,7 +58,7 @@ def get_system():
             return (c.C-m_crit) * 0.1 / ur.year
         return 0 * ur.kg / ur.year
 
-    reaction2 = Reaction(
+    reaction2 = boxsimu.Reaction(
         name = 'Reaction2',
         reaction_coefficients={C: -1, D: 1},
         rate=rr2,
@@ -80,19 +68,19 @@ def get_system():
     # BOXES
     #############################
 
-    box1 = Box(
+    box1 = boxsimu.Box(
         name='box1',
         description='Box 1',
         fluid=water.q(1e5*ur.kg), 
-        condition=Condition(T=290*ur.kelvin),
+        condition=boxsimu.Condition(T=290*ur.kelvin),
         variables=[A.q(1*ur.kg), B.q(3*ur.kg)],
         reactions=[reaction1, reaction2],
     )
-    box2 = Box(
+    box2 = boxsimu.Box(
         name='box2',
         description='Box 2',
         fluid=water.q(1e5*ur.kg), 
-        condition=Condition(T=300*ur.kelvin),
+        condition=boxsimu.Condition(T=300*ur.kelvin),
         variables=[A.q(2*ur.kg), B.q(1*ur.kg)],
         reactions=[reaction1, reaction2],
     )
@@ -101,7 +89,7 @@ def get_system():
     # FLOWS
     #############################
 
-    inflow_box1 = Flow(
+    inflow_box1 = boxsimu.Flow(
         name='Inflow', 
         source_box=None, 
         target_box=box1,
@@ -113,7 +101,7 @@ def get_system():
         }
     )
 
-    flow_box1_to_box2 = Flow(
+    flow_box1_to_box2 = boxsimu.Flow(
         name='FlowBox1_Box2', 
         source_box=box1, 
         target_box=box2,
@@ -121,7 +109,7 @@ def get_system():
         tracer_transport=True,
     )
     
-    outflow_box2 = Flow(
+    outflow_box2 = boxsimu.Flow(
         name='Outflow',
         source_box=box2, 
         target_box=None,
@@ -133,11 +121,12 @@ def get_system():
     # SYSTEM
     #############################
 
-    bmsystem = BoxModelSystem(
-            name='Test System', 
+    bmsystem = boxsimu.BoxModelSystem(
+            name='TestSystem', 
+            description='Das ist die Beschreibung eines Test Systems!',
             boxes=[box1, box2],
             flows=[inflow_box1, flow_box1_to_box2, outflow_box2],
-            global_condition=Condition(T=295*ur.kelvin),
+            global_condition=boxsimu.Condition(T=295*ur.kelvin),
     )
     return bmsystem
 

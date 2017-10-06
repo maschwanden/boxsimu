@@ -6,10 +6,12 @@ Created on Thu Jun 23 2016 at 10:37UTC
 
 """
 
+import os
 import pdb
 import copy
 import time as time_module
 import numpy as np
+import dill as pickle
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 import math
@@ -81,6 +83,10 @@ class Solver:
         # Start time of function
         func_start_time = time_module.time()
 
+        # Saves the time since the start of the simulate at which the last 
+        # save (pickling) was conducted
+        last_save_timedelta = 0  
+
         if debug:
             pdb.set_trace()
                 
@@ -116,6 +122,16 @@ class Solver:
             progress = int(float(timestep) / float(N_timesteps)*10) * 10.0
             if progress != progress_old:
                 print("{}%".format(progress))
+                
+                # Check if simulation is running since more than a minute
+                # since the last save was conducted.
+                time_since_last_save = (time_module.time() - func_start_time 
+                        - last_save_timedelta)
+                if time_since_last_save > 6:
+                    last_save_timedelta = time_module.time() - func_start_time 
+                    self.save('{}_TS{}.pickle'.format(self.system.name, 
+                        timestep))
+
             time += dt
 
             ##################################################
@@ -161,8 +177,24 @@ class Solver:
                 func_end_time - func_start_time))
         return sol
 
-    def add_timestep_to_solution(self, **kwargs):
-        pass
+
+    # PICKLING
+
+    def save(self, file_name):
+        """Pickle instance and save to file_name."""
+        with open(file_name, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(self, file_name):
+        """Load pickled instance from file_name."""
+        with open(file_name, 'rb') as f:
+            solution = pickle.load(f)
+            if not isinstance(solution, Solution):
+                raise ValueError(
+                        'Loaded pickle object is not a Solution instance!')
+        return solution
+
 
     # HELPER functions
 

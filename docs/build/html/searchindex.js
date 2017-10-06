@@ -1,0 +1,1 @@
+Search.setIndex({docnames:["index","introduction"],envversion:53,filenames:["index.rst","introduction.rst"],objects:{},objnames:{},objtypes:{},terms:{abc:1,content:0,index:0,introduct:0,modul:0,page:0,search:0},titles:["boxsimu documentation","Introduction"],titleterms:{boxsimu:0,document:0,indic:0,introduct:1,tabl:0,welcom:[]}})

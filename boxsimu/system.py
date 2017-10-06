@@ -18,6 +18,7 @@ from attrdict import AttrDict
 # import all submodules with prefix 'bs' for BoxSimu
 from . import box as bs_box
 from . import condition as bs_condition
+from . import descriptors as bs_descriptors
 from . import validation as bs_validation
 from . import process as bs_process
 from . import solution as bs_solution
@@ -59,13 +60,16 @@ class BoxModelSystem:
 
     """
 
+    name = bs_descriptors.ImmutableIdentifierDescriptor('name')
+
     def __init__(self, name, boxes, global_condition=None, fluxes=None, 
-            flows=None):
+            flows=None, description=None):
         if not len(boxes) > 0:
             raise ValueError('At least one box must be given!')
         
         self.name = name
         self.global_condition = global_condition or bs_condition.Condition()
+
         self.flows = flows or []
         self.fluxes = fluxes or []
 
@@ -88,6 +92,8 @@ class BoxModelSystem:
             if b not in self.box_list:
                 raise ValueError('All boxes that are sources or targets '
                         'of flows or fluxes must be added to the system.')
+        if not description:
+            self.description = name
 
     def init_system(self): 
         """Define all variables in all boxes and set variable and box ids.
