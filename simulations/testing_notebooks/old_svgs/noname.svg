@@ -1,2 +1,0 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<svg baseProfile="full" height="100%" version="1.1" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="id2" markerHeight="10" markerWidth="10" refX="5" refY="5"><circle cx="5" cy="5" fill="red" r="5" /></marker></defs><polyline fill="none" marker="url(#id2)" points="10,10 50,20 70,50 100,30" stroke="black" /></svg>

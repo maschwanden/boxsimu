@@ -11,8 +11,6 @@ boxsimu documentation
    :caption: Contents:
    
    introduction
-   tutorial
-   ...
 
 
 
