@@ -2,7 +2,7 @@
 
 #ipython_notebook img{                                                                                        
     display:block;
-    background: url(../img/logo.png) no-repeat;
+    background: url(../../img/logo.png) no-repeat;
     background-size: contain;
     width: 233px;
     height: 33px;

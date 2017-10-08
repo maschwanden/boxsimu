@@ -1,18 +1,15 @@
 # boxsimu
 
 boxsimu is a simple simulation software that allows the 
-user to model/simulate simple to intermediate complex boxmodel-systems.
-It offers a user friendly interface to generate boxes, processes and 
-reactions that take place inside these boxes, and flows/fluxes that 
-describe how boxes exchange fluid and variable mass. Once a system is
-defined with boxsim, its temporal resolution can easily be solved using 
-the ```solve()``` function.
+user to model/simulate boxmodel-systems of intermediate complexity.
+It offers a user-friendly interface to define a system by instantiating 
+different classes like ```Fluid```, ```Variable```, ```Flow```, ```Flux```, 
+```Process```, ```Reaction```, ```Box```, ```BoxModelSystem```. These instances 
+can then be connected to each other. Once a system is
+defined with boxsimu, its temporal evolution can easily be simulated 
+using the ```solve()``` function.
 
 ## Getting Started
-
-boxsimu is available in the official python repository and thus can be
-installed using "pip install boxsimu".
-
 
 ### Prerequisites
 **Scientifc packages:**<br>
@@ -29,12 +26,66 @@ installed using "pip install boxsimu".
 
 ### Installing
 
-boxsimu can easily be installed using pip. On your console type in 
-> $ pip install boxsimu
+boxsimu can be installed using pip. On your console type in
+
+```pip install boxsimu```
 
 this should automatically compile all Cython files and copy all source 
 files into the right directory. If the installation fails check if all 
 of the above mentioned dependencies are met.
+
+### Code Example
+The system we want to model consists of a freshwater lake that only has 
+one inflow and one outflow. We want to simulate how the concentration 
+of phosphate in this lake evolves over time. The system is defined 
+in boxsimu with the following code:
+
+```python
+import boxsimu 
+from boxsimu import ur
+
+freshwater = boxsimu.Fluid('freshwater', rho=1000*ur.kg/ur.meter**3)
+po4 = boxsimu.Variable('po4')
+
+lake = boxsimu.Box(
+    name='lake',
+    description='Little Lake',
+    fluid=freshwater.q(m_water),
+    variables=[po4.q(m_0)],
+)
+
+inflow = boxsimu.Flow(
+    name='Inflow', 
+    source_box=None,
+    target_box=lake,
+    rate=flow_rate,
+    tracer_transport=True,
+    concentrations={po4: 3e-1 * ur.gram / ur.kg}, 
+)
+outflow = boxsimu.Flow(
+    name='Outflow',
+    source_box=lake,
+    target_box=None,
+    rate=flow_rate,
+    tracer_transport=True,
+)
+
+system = boxsimu.BoxModelSystem(
+    name='lake_system', 
+    description='Simple Lake Box Model',
+    boxes=[lake,], 
+    flows=[inflow, outflow,],
+)
+```
+For an explanation of the code see *Tutorial Part 1*.
+The system's temporal evolution can then be simulated and visualized:
+
+```python
+solution = system.solve(total_integration_time=800*ur.day, dt=1*ur.day)
+solution.plot_variable_concentration(variable=po4, figsize=(6,4), units=ur.kg/ur.meter**3)
+```
+This results in the following plot:
+![PO4 concentration as a function of time](https://github.com/maschwanden/boxsimu/raw/master/img/tutorial1_simulation_po4_plot.png)
 
 ## Authors
 
