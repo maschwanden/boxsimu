@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 
-# import all submodules with prefix 'bs' for BoxSimu
+# import all submodules with prefix 'bs' (short for BoxSimu)
 from . import box as bs_box
 from . import condition as bs_condition
 from . import descriptors as bs_descriptors
@@ -34,22 +34,22 @@ class BoxModelSystem:
 
     BoxModelSystems contains boxes, fluid-flows/variable-fluxes
     between them, and global conditions that can affect for example
-    process/reaction rates. 
-    
+    process/reaction rates.
+
     Args:
-        name (str): Human readable string describing the system.     
+        name (str): Human readable string describing the system.
         boxes (list of Box): List of all Boxes that lie within the system.
         global_condition (Condition): Default conditions for all boxes
-            of the system. 
+            of the system.
             Defaults to an empty Condition.
-        flows (list of Flow): Fluid exchange of the Boxes. 
+        flows (list of Flow): Fluid exchange of the Boxes.
             Defaults to an empty list.
         fluxes (list of Flux): Variable exchange of the Boxes.
             Defaults to an empty list.
 
     Attributes:
-        name (str): Human readable string describing the system.     
-        boxes (AttrDict of Box): AttrDict of all Boxes that lie within the 
+        name (str): Human readable string describing the system.
+        boxes (AttrDict of Box): AttrDict of all Boxes that lie within the
             system. Box names are the key, and the box instance the values
             of the AttrDict.
         box_names (list of str): List of all Box names, sorted alphabetically.
@@ -59,14 +59,13 @@ class BoxModelSystem:
             of the system.
 
     """
-
     name = bs_descriptors.ImmutableIdentifierDescriptor('name')
 
-    def __init__(self, name, boxes, global_condition=None, fluxes=None, 
+    def __init__(self, name, boxes, global_condition=None, fluxes=None,
             flows=None, description=None):
         if not len(boxes) > 0:
             raise ValueError('At least one box must be given!')
-        
+
         self.name = name
         self.global_condition = global_condition or bs_condition.Condition()
 
@@ -95,10 +94,10 @@ class BoxModelSystem:
         if not description:
             self.description = name
 
-    def init_system(self): 
+    def init_system(self):
         """Define all variables in all boxes and set variable and box ids.
-        
-        Run by __init__ of BoxModelSystem. 
+
+        Run by __init__ of BoxModelSystem.
         This method must be called if (after creation) new boxes or variables
         are added.
 
@@ -114,11 +113,11 @@ class BoxModelSystem:
 
         self.box_names = list(self.boxes.keys())
         self.box_names.sort()
-        self.processes = list(set([process 
+        self.processes = list(set([process
             for box_name, box in self.boxes.items()
             for process in box.processes]))
         self.processes.sort()
-        self.reactions = list(set([reaction 
+        self.reactions = list(set([reaction
             for box_name, box in self.boxes.items()
             for reaction in box.reactions]))
         self.reactions.sort()
@@ -158,10 +157,10 @@ class BoxModelSystem:
 
     def _set_box_and_variable_ids(self):
         """Set the id attribute of all boxes and variables.
-        
+
         All variables that are not defined within a box are defined.
-        The ids of boxes and variables are set alphabetically to the 
-        name attribute. Therefore a box called 'lake' will get a 
+        The ids of boxes and variables are set alphabetically to the
+        name attribute. Therefore a box called 'lake' will get a
         smaller id than a box called 'ocean'.
 
         """
@@ -172,7 +171,7 @@ class BoxModelSystem:
             box = self.boxes[box_name]
             box.id = box_id
             box_id += 1
-        
+
         # Set Variable ids
         var_id = 0
         var_names = list(self.variables.keys())
@@ -192,7 +191,7 @@ class BoxModelSystem:
 
     @property
     def variable_list(self):
-        return [self.variables[variable_name] 
+        return [self.variables[variable_name]
                 for variable_name in self.variable_names]
 
     @property
@@ -224,20 +223,20 @@ class BoxModelSystem:
     def get_variable_mobility_numeric_1Darray(self, variable, time):
         """Return mobility (0,1) of the variable in every box."""
         mobility = np.zeros(self.N_boxes)
-        mobility_bool = self.get_variable_mobility_bool_1Darray(variable, 
+        mobility_bool = self.get_variable_mobility_bool_1Darray(variable,
                 time)
         for i, x in enumerate(mobility_bool):
             mobility[i] = 1 if x else 0
         return mobility
 
     def get_box_mass(self, box):
-        """Return current total mass (fluid + all variables) of Box.""" 
+        """Return current total mass (fluid + all variables) of Box."""
         return box.mass
 
     def get_box_volume(self, box):
         """Return current box_volume of Box."""
         return box.get_volume(None, self)
-        
+
 
     #####################################################
     # Fluid and Variable Mass/Concentration Vectors/Matrices
@@ -253,7 +252,7 @@ class BoxModelSystem:
             bs_validation.raise_if_not_mass(fluid_mass)
             units.append(fluid_mass.units)
             m[box.id] = fluid_mass.magnitude
-        
+
         default_units = self.pint_ur.kg
         m_units = bs_validation.get_single_shared_unit(units, default_units)
         return m * m_units
@@ -262,7 +261,7 @@ class BoxModelSystem:
         """Return masses of variable of all boxes.
 
         Args:
-            variable (Variable): Variable of which the mass vector should 
+            variable (Variable): Variable of which the mass vector should
                 be returned.
 
         """
@@ -283,7 +282,7 @@ class BoxModelSystem:
         """Return concentration [M/M] of variable of all boxes.
 
         Args:
-            variable (Variable): Variable of which the concentration vector 
+            variable (Variable): Variable of which the concentration vector
                 should be returned.
 
         """
@@ -306,19 +305,19 @@ class BoxModelSystem:
 
     def get_variable_flow_concentration_1Darray(self, variable, time):
         """Return the concentration within the ouflow from a box.
-        
+
         The concentration is basically the same as in the box. However,
         if a variable is not mobile it can be altered.
-        
+
         Args:
-            variable (Variable): Variable of which the sink vector should be 
+            variable (Variable): Variable of which the sink vector should be
                 returned.
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
 
         """
         concentration = self.get_variable_concentration_1Darray(variable)
-        flow_concentration = (concentration * 
+        flow_concentration = (concentration *
                 self.get_variable_mobility_numeric_1Darray(variable, time))
 
         return flow_concentration
@@ -331,17 +330,17 @@ class BoxModelSystem:
     def get_fluid_mass_internal_flow_2Darray(self, time, flows=None):
         """Return fluid mass exchange rates due to flows between boxes.
 
-        Return a 2D list (Matrix-like) with the fluid mass exchange rates 
-        between boxes of the system. Row i of the 2D list represents the 
-        flows that go away from box i (sinks). Column j of the 2D list 
+        Return a 2D list (Matrix-like) with the fluid mass exchange rates
+        between boxes of the system. Row i of the 2D list represents the
+        flows that go away from box i (sinks). Column j of the 2D list
         represents the flows that go towards box j (sources).
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
-            flows (list of Flow): List of the flows which should be 
-                considered. Default value is None. If flows==None, all 
-                flows of the system are considered.  
+            flows (list of Flow): List of the flows which should be
+                considered. Default value is None. If flows==None, all
+                flows of the system are considered.
 
         """
         A = np.zeros([self.N_boxes, self.N_boxes])
@@ -351,7 +350,7 @@ class BoxModelSystem:
         for flow in flows:
             if flow.source_box is None or flow.target_box is None:
                 continue
-            fluid_flow_rate = flow(time, flow.context, 
+            fluid_flow_rate = flow(time, flow.context,
                     self).to_base_units()
             bs_validation.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
@@ -370,10 +369,10 @@ class BoxModelSystem:
         of the system.
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
-            flows (list of Flow): List of the flows which should be 
-                considered. Default value is None. If flows==None, all 
+            flows (list of Flow): List of the flows which should be
+                considered. Default value is None. If flows==None, all
                 flows of the system are considered.
 
         """
@@ -395,12 +394,12 @@ class BoxModelSystem:
     def get_fluid_mass_flow_source_1Darray(self, time, flows=None):
         """Return fluid mass sources due to flows from outside the system.
 
-        Return 1D list with fluid mass sources due to flows from outside the 
-        system. Row i of the 1D list represents the fluid mass sources from 
+        Return 1D list with fluid mass sources due to flows from outside the
+        system. Row i of the 1D list represents the fluid mass sources from
         outside the system into box i.
 
         Args:
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
             flows (list of Flow): List of the flows which should be considered.
             Default value
@@ -417,7 +416,7 @@ class BoxModelSystem:
             bs_validation.raise_if_not_mass_per_time(fluid_flow_rate)
             units.append(fluid_flow_rate.units)
             q[flow.target_box.id] += fluid_flow_rate.magnitude
-        
+
         default_units = self.pint_ur.kg / self.pint_ur.second
         q_units = bs_validation.get_single_shared_unit(units, default_units)
         return q * q_units
@@ -429,25 +428,25 @@ class BoxModelSystem:
 
     # FLOW
 
-    def get_variable_internal_flow_2Darray(self, variable, time, f_flow, 
+    def get_variable_internal_flow_2Darray(self, variable, time, f_flow,
             flows=None):
         """Return variable exchange rates between the boxes due to flows.
 
-        Return 2D list of variable exchange rates due to fluid flows between 
+        Return 2D list of variable exchange rates due to fluid flows between
         the boxes and the corresponding passive transport of variable.
 
         Args:
-            variable (Variable): Variable of which the sink vector should be 
+            variable (Variable): Variable of which the sink vector should be
                 returned.
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
-            f_flow (1D array): Reduction of the mass flow coefficients due 
-                to mass conservation constraints (if an box is empty no 
-                fluid can flow away from this box). Coefficients have 
-                values in the range [0,1]. These coefficents are returned 
+            f_flow (1D array): Reduction of the mass flow coefficients due
+                to mass conservation constraints (if an box is empty no
+                fluid can flow away from this box). Coefficients have
+                values in the range [0,1]. These coefficents are returned
                 from Solver.calculate_mass_flows.
-            flows (list of Flow): List of the flows which should be 
-                considered. Default value is None. If flows==None, all 
+            flows (list of Flow): List of the flows which should be
+                considered. Default value is None. If flows==None, all
                 flows of the system are considered.
 
         """
@@ -479,8 +478,8 @@ class BoxModelSystem:
         A_units = bs_validation.get_single_shared_unit(units, default_units)
         return A * A_units
 
-    def get_variable_flow_sink_1Darray( self, variable, time, f_flow, 
-            flows=None): 
+    def get_variable_flow_sink_1Darray( self, variable, time, f_flow,
+            flows=None):
         """Return variable sinks due to flows out of the system for all boxes.
 
         The flow of variable from a box out of the system is returned as
@@ -490,66 +489,66 @@ class BoxModelSystem:
         by the concentration of variable in the flow's source_box.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
-            f_flow (1D array): Reduction of the mass flow coefficients 
-                due to mass conservation constraints (if an box is empty 
-                no fluid can flow away from this box). Coefficients have 
-                values in the range [0,1]. These coefficents are returend 
+            f_flow (1D array): Reduction of the mass flow coefficients
+                due to mass conservation constraints (if an box is empty
+                no fluid can flow away from this box). Coefficients have
+                values in the range [0,1]. These coefficents are returend
                 from Solver.calculate_mass_flows.
-            flows (list of Flow): List of the flows which should be 
-                considered. Default value is None. If flows==None, all 
+            flows (list of Flow): List of the flows which should be
+                considered. Default value is None. If flows==None, all
                 flows of the system are considered.
 
         """
         flows = flows or self.flows
-        flows = [flow for flow in bs_transport.Flow.get_all_to(None, flows) 
+        flows = [flow for flow in bs_transport.Flow.get_all_to(None, flows)
                     if flow.tracer_transport]
-        fluid_flow_rates = self.get_fluid_mass_flow_sink_1Darray(time, 
+        fluid_flow_rates = self.get_fluid_mass_flow_sink_1Darray(time,
                 flows=flows) * f_flow
         concentration = self.get_variable_flow_concentration_1Darray(
                 variable, time)
         s = concentration * fluid_flow_rates
         return s
 
-    def get_variable_flow_source_1Darray(self, variable, time, flows=None): 
+    def get_variable_flow_source_1Darray(self, variable, time, flows=None):
         """Return variable sources due to flows from outside the system.
 
-        The flow of variable from outside the system into system boxes 
+        The flow of variable from outside the system into system boxes
         is returned as a 1D list.
         For every box all fluid mass flows that have variable
-        concentrations specified are summed up and multiplied with the 
+        concentrations specified are summed up and multiplied with the
         corresponding variable concentration.
 
-        Note: Even if a Variable is specified as non-mobile, the 
-            variable is transported into the boxes according to their 
-            concentrations specified in the Flow definition! Therefore, 
+        Note: Even if a Variable is specified as non-mobile, the
+            variable is transported into the boxes according to their
+            concentrations specified in the Flow definition! Therefore,
             if a variable should not be transported then the concentration
             in the Flow definition has to be set to zero.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the flows shall be 
+            time (pint.Quantity [T]): Time at which the flows shall be
                 evaluated.
-            flows (list of Flow): List of the flows which should be 
-                considered. Default value is None. If flows==None, all 
+            flows (list of Flow): List of the flows which should be
+                considered. Default value is None. If flows==None, all
                 flows of the system are considered.
 
         """
         q = np.zeros(self.N_boxes)
         flows = flows or self.flows
-        variable_flows = [f for f in flows 
+        variable_flows = [f for f in flows
                 if variable in f.concentrations.keys()]
 
         units = []
         for flow in bs_transport.Flow.get_all_from(None, variable_flows):
             flow_rate = flow(time, flow.context, self)
-            flow_var_concentration = flow.concentrations[variable](time, 
+            flow_var_concentration = flow.concentrations[variable](time,
                     flow.context, self)
-            variable_flow_rate = (flow_rate * 
+            variable_flow_rate = (flow_rate *
                     flow_var_concentration).to_base_units()
             bs_validation.raise_if_not_mass_per_time(variable_flow_rate)
             units.append(variable_flow_rate.units)
@@ -561,28 +560,28 @@ class BoxModelSystem:
 
     # FLUX
 
-    def get_variable_internal_flux_2Darray(self, variable, time, fluxes=None): 
+    def get_variable_internal_flux_2Darray(self, variable, time, fluxes=None):
         """Return variable flux exchange rates between boxes of the system.
 
         Returns a 2D list (Matrix-like) with the variable flux exchange
         rates between boxes of the system.
-        Row i of the 2D list represents the fluxes that go away from 
-        box i (sinks). Column j of the 2D list represents the fluxes 
+        Row i of the 2D list represents the fluxes that go away from
+        box i (sinks). Column j of the 2D list represents the fluxes
         that go towards box j (sources).
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            fluxes (list of Flow): List of the fluxes which should be 
-                considered. Default value is None. If fluxes==None, all 
+            fluxes (list of Flow): List of the fluxes which should be
+                considered. Default value is None. If fluxes==None, all
                 fluxes of the system are considered.
 
         """
         A = np.zeros([self.N_boxes, self.N_boxes])
         fluxes = fluxes or self.fluxes
-        variable_fluxes = [flux for flux in fluxes 
+        variable_fluxes = [flux for flux in fluxes
                 if variable == flux.variable]
 
         units = []
@@ -601,16 +600,16 @@ class BoxModelSystem:
     def get_variable_flux_sink_1Darray(self, variable, time, fluxes=None):
         """Return variable sinks due to fluxes out of the system.
 
-        The sinks of variable due to fluxes out of the system is 
+        The sinks of variable due to fluxes out of the system is
         returned as a 1D list.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            fluxes (list of Flow): List of the fluxes which should be 
-                considered. Default value is None. If fluxes==None, all 
+            fluxes (list of Flow): List of the fluxes which should be
+                considered. Default value is None. If fluxes==None, all
                 fluxes of the system are considered.
 
         """
@@ -633,16 +632,16 @@ class BoxModelSystem:
     def get_variable_flux_source_1Darray(self, variable, time, fluxes=None):
         """Return variable sources due to fluxes from outside the system.
 
-        The variable sources for every box due to fluxes from outside the 
+        The variable sources for every box due to fluxes from outside the
         system is returned as a 1D list.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            fluxes (list of Flow): List of the fluxes which should be 
-                considered. Default value is None. If fluxes==None, all 
+            fluxes (list of Flow): List of the fluxes which should be
+                considered. Default value is None. If fluxes==None, all
                 fluxes of the system are considered.
 
         """
@@ -665,20 +664,20 @@ class BoxModelSystem:
 
     # PROCESS
 
-    def get_variable_process_sink_1Darray(self, variable, time, 
+    def get_variable_process_sink_1Darray(self, variable, time,
             processes=None):
         """Return variable sinks due to processes.
 
-        The variable sources for every box due to processes is returned 
+        The variable sources for every box due to processes is returned
         as a 1D list.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            processes (list of Process): List of the processes which should 
-                be considered. Default value is None. If processes==None, all 
+            processes (list of Process): List of the processes which should
+                be considered. Default value is None. If processes==None, all
                 processes of the system are considered.
 
         """
@@ -686,17 +685,17 @@ class BoxModelSystem:
         processes = processes or self.processes
         variable_processes = [p for p in processes if variable == p.variable]
         variable_process_names = [p.name for p in variable_processes]
-        
+
         units = []
         for box_name, box in self.boxes.items():
-            box_processes = [p for p in box.processes 
+            box_processes = [p for p in box.processes
                     if p.name in variable_process_names]
-            box_process_rates = [p(time, box.context, self).to_base_units() 
+            box_process_rates = [p(time, box.context, self).to_base_units()
                     for p in box_processes]
             for rate in box_process_rates:
                 bs_validation.raise_if_not_mass_per_time(rate)
                 units.append(rate.units)
-            sink_rates = [-rate for rate in box_process_rates 
+            sink_rates = [-rate for rate in box_process_rates
                     if rate.magnitude < 0]
             try:
                 s[box.id] += sum(sink_rates).magnitude
@@ -707,19 +706,19 @@ class BoxModelSystem:
         s_units = bs_validation.get_single_shared_unit(units, default_units)
         return s * s_units
 
-    def get_variable_process_source_1Darray(self, variable, time, 
+    def get_variable_process_source_1Darray(self, variable, time,
             processes=None):
         """ Returns the magnitude of the variable sources [kg] due to processes.
 
         The sources of variable due to processes is returned as a 1D numpy array.
 
         Args:
-            variable (Variable): Variable of which the sink vector should 
+            variable (Variable): Variable of which the sink vector should
                 be returned.
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            processes (list of Process): List of the processes which should 
-                be considered. Default value is None. If processes==None, all 
+            processes (list of Process): List of the processes which should
+                be considered. Default value is None. If processes==None, all
                 processes of the system are considered.
 
         """
@@ -727,17 +726,17 @@ class BoxModelSystem:
         processes = processes or self.processes
         variable_processes = [p for p in processes if variable == p.variable]
         variable_process_names = [p.name for p in variable_processes]
-        
+
         units = []
         for box_name, box in self.boxes.items():
-            box_processes = [p for p in box.processes 
+            box_processes = [p for p in box.processes
                     if p.name in variable_process_names]
-            box_process_rates = [p(time, box.context, self).to_base_units() 
+            box_process_rates = [p(time, box.context, self).to_base_units()
                     for p in box_processes]
             for rate in box_process_rates:
                 bs_validation.raise_if_not_mass_per_time(rate)
                 units.append(rate.units)
-            source_rates = [rate for rate in box_process_rates 
+            source_rates = [rate for rate in box_process_rates
                     if rate.magnitude > 0]
             try:
                 q[box.id] += sum(source_rates).magnitude
@@ -754,7 +753,7 @@ class BoxModelSystem:
     def get_reaction_rate_2Darray(self, time, reaction):
         """Return reaction rates for all variables and boxes."""
         A = np.zeros([self.N_boxes, self.N_variables])
-        
+
         units = []
         for box in self.box_list:
             if not reaction in box.reactions:
@@ -765,7 +764,7 @@ class BoxModelSystem:
         return A * ur.kg/ur.second
 
 
-    def get_reaction_rate_3Darray(self, time, reactions=None): 
+    def get_reaction_rate_3Darray(self, time, reactions=None):
         """Return all reaction rates for all variables and boxes as a 3D list.
 
         The primary axis are the boxes. On the secondary axis are the reactions and on the third
@@ -775,21 +774,21 @@ class BoxModelSystem:
         Axis 2: Variables
         Axis 3: Reactions
 
-        Note: The first and the second axis are constant, that means that 
-        the same index of the first and second axis always point to the 
+        Note: The first and the second axis are constant, that means that
+        the same index of the first and second axis always point to the
         same box/variable. On the other hand, reactions are just filled in
         in any order. That means that the same index of the third axis doesn't
-        show the reaction rates of the same reaction. If for example in one 
-        box there are four reactions: R1, R2, R3, R4. Then the third axis of 
+        show the reaction rates of the same reaction. If for example in one
+        box there are four reactions: R1, R2, R3, R4. Then the third axis of
         this box will contain: [R1,R2,R3,R4]. For another box that only has
         R3 the third axis will look: [0,0,R3,0]. Thus the the same reaction
         always has the same index.
 
         Args:
-            time (pint.Quantity [T]): Time at which the fluxes shall be 
+            time (pint.Quantity [T]): Time at which the fluxes shall be
                 evaluated.
-            reactions (list of Reaction): List of the reactions which should 
-                be considered. Default value is None. If reactions==None, all 
+            reactions (list of Reaction): List of the reactions which should
+                be considered. Default value is None. If reactions==None, all
                 reactions of the system are considered.
 
         """
@@ -798,7 +797,7 @@ class BoxModelSystem:
         N_reactions = len(reactions)
 
         if N_reactions == 0:
-            return (np.zeros([self.N_boxes, self.N_variables, 1]) * 
+            return (np.zeros([self.N_boxes, self.N_variables, 1]) *
                     self.pint_ur.kg / self.pint_ur.second)
 
         C = np.zeros([N_reactions, self.N_boxes, self.N_variables])
@@ -806,13 +805,13 @@ class BoxModelSystem:
         units = []
         for i, reaction in enumerate(reactions):
             reaction_2Darray = self.get_reaction_rate_2Darray(time, reaction)
-            C[i,:,:] = reaction_2Darray.magnitude 
+            C[i,:,:] = reaction_2Darray.magnitude
 
         return np.moveaxis(C, 0, -1) * ur.kg/ur.second
 
 
     # REPRESENTATION functions
-    
+
     def save_as_svg(self, filename):
         if '.' not in filename:
             filename += '.svg'
@@ -821,6 +820,9 @@ class BoxModelSystem:
 
     # SOLVER functions
 
-    def solve(self, total_integration_time, dt, debug=False):
-        solver = bs_solver.Solver(self)
-        return solver.solve(total_integration_time, dt, debug)
+    def solve(self, total_integration_time, dt, save_frequency=100, debug=False):
+        # solver = bs_solver.Solver(self)
+        # return solver.solve(total_integration_time, dt, debug)
+        return bs_solver.solve(self, total_integration_time, dt,
+                save_frequency=save_frequency, debug=debug)
+

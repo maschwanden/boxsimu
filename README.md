@@ -82,11 +82,14 @@ The system's temporal evolution can then be simulated and visualized:
 
 ```python
 solution = system.solve(total_integration_time=800*ur.day, dt=1*ur.day)
-solution.plot_variable_concentration(variable=po4, figsize=(6,4), units=ur.kg/ur.meter**3)
+solution.plot_variable_concentration(variable=po4)
 ```
 This results in the following plot:
+
 ![PO4 concentration as a function of time](https://github.com/maschwanden/boxsimu/raw/master/img/tutorial1_simulation_po4_plot.png)
 
+## Contributing
+You have a question about the package or you would like to have a certain feature implemented? Open an issue!
 ## Authors
 
 * **Mathias Aschwanden** 

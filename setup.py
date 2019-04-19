@@ -12,7 +12,7 @@ ext_modules += [
 setup(
       name='boxsimu',
       version='0.1',
-      description='Simple box modelling framework.',
+      description='Simple box-modelling framework.',
       url='',
       author='Mathias Aschwanden',
       author_email='mathias.aschwanden@gmail.com',

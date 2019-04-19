@@ -1,10 +1,9 @@
-Python 3.4 or newer
 numpy
 matplotlib
 pint
-attrdict
-svgwrite
-PyYAML 
 jupyter
 pandas
+
+attrdict
+svgwrite
 dill

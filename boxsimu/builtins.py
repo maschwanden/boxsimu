@@ -19,12 +19,24 @@ from . import entities as bs_entities
 
 
 # VARIABLES
-po4 = bs_entities.Variabl('PO4', molar_mass=94.9714*ur.gram/ur.mole)
-PO4 = phosphate = po4
-no3 = bs_entities.Variabl('NO3', molar_mass=62.00*ur.gram/ur.mole)
-NO3 = nitrate = no3
+carbon = bs_entities.Variable('C', molar_mass=)
+carbon_dioxide = bs_entites.Variable('CO2', molar_mass=)
+methane = bs_entites.Variable('CH4', molar_mass=)
+
+phosphate = bs_entities.Variable('PO4', molar_mass=94.9714*ur.gram/ur.mole)
+phosphorus = bs_entities.Variable('P', molar_mass=)
+
+nitrate = bs_entities.Variable('NO3', molar_mass=62.00*ur.gram/ur.mole)
+nitrogen = bs_entities.Variable('P', molar_mass=)
 
 
 # PROCESSES
+
+# REACTIONS
+
+# BOXES
+
+# SYSTEMS
+
 
 

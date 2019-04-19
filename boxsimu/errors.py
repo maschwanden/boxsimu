@@ -7,6 +7,25 @@ Created on Thu Jun 30 2017 at 12:51UTC
 
 """
 
+
+fluid_is_not_quantified_error = ValueError(
+        'The given instance of the class Fluid was not quantified!'
+        'A fluid can be quantified using its q() method (shorthand for'
+        'quantify()).'
+        )
+
+variable_is_not_quantified_error = ValueError(
+        'The given instance of the class Variable was not quantified!'
+        'A variable can be quantified using its q() method (shorthand for'
+        'quantify()).'
+        )
+
+must_be_fluid_or_variable_error = ValueError(
+        'An instance of the class Fluid or Variable was expected as an '
+        'arugment.'
+        )
+
+
 class BoxsimuBaseException(Exception):
     """Base Exception for Boxsimu Project."""
     pass
@@ -20,6 +39,7 @@ class BoxsimuDefaultMessageException(BoxsimuBaseException):
         if not message:
             message = self.message_default
         super().__init__(message)
+
 
 
 class VariableNotQuantifiedError(BoxsimuDefaultMessageException):
